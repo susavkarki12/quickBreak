@@ -1,0 +1,13 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/TT-Hoves.ttf",
+      "sha1": "56d8c8f01c28658a3edad772c999edb3532d84d7"
+    },
+    {
+      "path": "assets/fonts/TTHoves-Regular.ttf",
+      "sha1": "b72fbb0af1496081dc7bd75d62df5d624415eb23"
+    }
+  ]
+}
