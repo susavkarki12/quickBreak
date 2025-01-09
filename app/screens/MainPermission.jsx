@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, StatusBar, TouchableOpacity } from 'react-nativ
 import React from 'react'
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { LinearGradient } from "react-native-linear-gradient";
+import overlay from '../constants/permissions';
 
 
 const MainPermission = ({ navigation }) => {
@@ -10,7 +11,9 @@ const MainPermission = ({ navigation }) => {
         navigation.navigate("PreAppSelection")
     }
     
-    
+    const overlayPermission=()=>{
+        navigation.navigate("Permission")
+    }
 
     return (
 
@@ -29,7 +32,7 @@ const MainPermission = ({ navigation }) => {
             <View style={[styles.containerView, { marginTop: hp('3%') }]}>
                 <Text style={styles.primaryText}>Display Over Other Apps
                 </Text>
-                <TouchableOpacity >
+                <TouchableOpacity onPress={overlayPermission} >
                     <Text style={[styles.buttonText, { marginLeft: wp('20%') }]}>Allow</Text>
                 </TouchableOpacity>
 

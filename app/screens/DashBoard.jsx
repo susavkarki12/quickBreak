@@ -4,7 +4,8 @@ import { LinearGradient } from "react-native-linear-gradient";
 import { BarChart } from "react-native-gifted-charts";
 const rgba = (r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import FontAwesome5 from 'react-native-vector-icons'
+import Icon from 'react-native-vector-icons/FontAwesome5'
+import {  Ionicons} from "react-native-vector-icons/Ionicons";
 
 const rawData = [20, 45, 28, 80, 99, 43, 34];
 const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -116,11 +117,11 @@ const DashBoard = ({ navigation }) => {
           fontSize: hp('2.5%'),
           //fontWeight: "bold"
         }}>Usages</Text>
-        <FontAwesome5 name="fire-alt" size={19} color="red" style={{
+        <Icon name="fire-alt" size={30} color="red" style={{
           flex: 1,
           marginTop: hp('0.5%'),
           marginLeft: wp('1%')
-        }} />
+        }} /> 
         <TouchableOpacity onPress={navToSeeMore}>
           <Text style={{
             fontFamily: "TTHoves",

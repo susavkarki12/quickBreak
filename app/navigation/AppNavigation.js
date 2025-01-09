@@ -9,6 +9,7 @@ import PreAppSelection from "../screens/PreAppSelection";
 import DashBoard from "../screens/DashBoard";
 import SeeMoreGraph from "../screens/SeeMoreGraph";
 import { Setting } from "../screens/Setting";
+import Permissions from "../constants/permissions";
 
 
 const AppStack = createNativeStackNavigator();
@@ -29,6 +30,7 @@ const AppNavigation = () => {
       <AppStack.Screen name="DashBoard" component={DashBoard} />
       <AppStack.Screen name="SeeMoreGraph" component={SeeMoreGraph} />
       <AppStack.Screen name="Setting" component={Setting} />
+      <AppStack.Screen name="Permission" component={Permissions} />
 
     </AppStack.Navigator>
    
