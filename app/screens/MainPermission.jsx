@@ -3,16 +3,19 @@ import React from 'react'
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { LinearGradient } from "react-native-linear-gradient";
 import overlay from '../constants/permissions';
-
+import openAutoStartSettings from '../Service/AutoStartService'
 
 const MainPermission = ({ navigation }) => {
 
     const nav = () => {
         navigation.navigate("PreAppSelection")
     }
-    
-    const overlayPermission=()=>{
+
+    const overlayPermission = () => {
         navigation.navigate("Permission")
+    }
+    const autoStart=()=>{
+        openAutoStartSettings()
     }
 
     return (
@@ -40,8 +43,9 @@ const MainPermission = ({ navigation }) => {
             <View style={[styles.containerView, { marginTop: hp('3%') }]}>
                 <Text style={styles.primaryText}>Auto Start Permission
                 </Text>
+                <TouchableOpacity onPress={autoStart}>
                 <Text style={[styles.buttonText, { marginLeft: wp('26%') }]}>Allow</Text>
-
+                </TouchableOpacity>
             </View>
             <TouchableOpacity onPress={nav} >
                 <LinearGradient

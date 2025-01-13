@@ -10,6 +10,7 @@ import DashBoard from "../screens/DashBoard";
 import SeeMoreGraph from "../screens/SeeMoreGraph";
 import { Setting } from "../screens/Setting";
 import Permissions from "../constants/permissions";
+import OverlayScreen from "../constants/OverlayScreen";
 
 
 const AppStack = createNativeStackNavigator();
@@ -31,6 +32,7 @@ const AppNavigation = () => {
       <AppStack.Screen name="SeeMoreGraph" component={SeeMoreGraph} />
       <AppStack.Screen name="Setting" component={Setting} />
       <AppStack.Screen name="Permission" component={Permissions} />
+      <AppStack.Screen name="TestOverlay" component={OverlayScreen} />
 
     </AppStack.Navigator>
    
