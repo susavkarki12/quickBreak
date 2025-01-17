@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, StatusBar, TouchableOpacity } from 'react-native'
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { LinearGradient } from "react-native-linear-gradient";
 import overlay from '../constants/permissions';
-import openAutoStartSettings from '../Service/AutoStartService'
+import getUsageData from '../Service/UsageStatsService';
+
 
 const MainPermission = ({ navigation }) => {
 
@@ -14,9 +15,16 @@ const MainPermission = ({ navigation }) => {
     const overlayPermission = () => {
         navigation.navigate("Permission")
     }
-    const autoStart=()=>{
+    const autoStart = () => {
         openAutoStartSettings()
     }
+
+    const usageAccess = () => {
+        getUsageData();
+        console.log(getUsageData())
+    }
+
+    
 
     return (
 
@@ -44,7 +52,14 @@ const MainPermission = ({ navigation }) => {
                 <Text style={styles.primaryText}>Auto Start Permission
                 </Text>
                 <TouchableOpacity onPress={autoStart}>
-                <Text style={[styles.buttonText, { marginLeft: wp('26%') }]}>Allow</Text>
+                    <Text style={[styles.buttonText, { marginLeft: wp('26%') }]}>Allow</Text>
+                </TouchableOpacity>
+            </View>
+            <View style={[styles.containerView, { marginTop: hp('3%') }]}>
+                <Text style={styles.primaryText}>Usage Access Permission
+                </Text>
+                <TouchableOpacity onPress={usageAccess}>
+                    <Text style={[styles.buttonText, { marginLeft: wp('19%') }]}>Allow</Text>
                 </TouchableOpacity>
             </View>
             <TouchableOpacity onPress={nav} >

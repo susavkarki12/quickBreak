@@ -19,8 +19,8 @@ import { LinearGradient } from "react-native-linear-gradient";
 
 
 const { width, height } = Dimensions.get("screen")
-import { FontAwesome } from "react-native-vector-icons";
-import { MaterialIcons } from "react-native-vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 
 
 export const Setting = ({ navigation }) => {

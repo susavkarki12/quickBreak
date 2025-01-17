@@ -4,8 +4,8 @@ import { LinearGradient } from "react-native-linear-gradient";
 import { BarChart } from "react-native-gifted-charts";
 const rgba = (r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import Icon from 'react-native-vector-icons/FontAwesome5'
-import {  Ionicons} from "react-native-vector-icons/Ionicons";
+import { FontAwesome5, FontAwesome, Fontisto, Ionicons, MaterialIcons } from "@expo/vector-icons";
+
 
 const rawData = [20, 45, 28, 80, 99, 43, 34];
 const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -18,7 +18,7 @@ const data = rawData.map((item, index) => ({
 const DashBoard = ({ navigation }) => {
 
   const navToVIP = () => {
-    navigation.navigate("vip")
+    navigation.navigate("Vip")
   }
 
   const navToSeeMore = () => {
@@ -117,7 +117,7 @@ const DashBoard = ({ navigation }) => {
           fontSize: hp('2.5%'),
           //fontWeight: "bold"
         }}>Usages</Text>
-        <Icon name="fire-alt" size={30} color="red" style={{
+        <FontAwesome5 name="fire-alt" size={30} color="red" style={{
           flex: 1,
           marginTop: hp('0.5%'),
           marginLeft: wp('1%')
@@ -159,7 +159,7 @@ const DashBoard = ({ navigation }) => {
           marginTop: hp('20%')
         }}
       >
-        {/* <Ionicons name="compass" size={wp('12%')} color="white" /> */}
+        <Ionicons name="compass" size={wp('12%')} color="white" />
         <Text style={{
           fontFamily: "TTHoves",
           color: "white",
@@ -178,29 +178,29 @@ const DashBoard = ({ navigation }) => {
           <View style={[styles.footerLogo, {            
             marginLeft: wp('2%')
           }]}>
-            {/* <Fontisto
+            <Fontisto
               style={{
                 marginLeft: wp('1.85%'),
                 marginTop: hp('0.7%')
               }}
-              name="player-settings" size={wp('7%')} color="white" /> */}
+              name="player-settings" size={wp('7%')} color="white" />
           </View>
         </TouchableOpacity>
 
         <View style={[styles.footerLogo, {            
             marginHorizontal: wp('4%'),
           }]}>
-          {/* <FontAwesome style={{
+          <FontAwesome style={{
             marginLeft: wp('1.7%'),
             marginTop: hp('0.8%'),
-          }} name="bell" size={wp('7%')} color="white" /> */}
+          }} name="bell" size={wp('7%')} color="white" />
         </View>
         <View style={[styles.footerLogo]}
           source={require("./icons/4.png")}>
-          {/* <Ionicons style={{
+          <Ionicons style={{
             marginLeft: wp('1.7%'),
             marginTop: hp('0.8%')
-          }} name="person" size={wp('7%')} color="white" /> */}
+          }} name="person" size={wp('7%')} color="white" />
         </View>
       </LinearGradient>
     </SafeAreaView>

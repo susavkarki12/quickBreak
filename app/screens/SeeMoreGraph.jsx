@@ -2,33 +2,57 @@ import { View, Text, StyleSheet, SafeAreaView, StatusBar, Dimensions, TouchableO
 import React, { useState, useEffect } from 'react';
 import { LineChart, BarChart } from "react-native-gifted-charts";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-//import { FontAwesome, Fontisto, Ionicons, MaterialIcons } from "react-native-vector-icons";
-import { ThemedButton } from 'react-native-really-awesome-button';
+import { FontAwesome, Fontisto, Ionicons, MaterialIcons } from "@expo/vector-icons";
+//import { ThemedButton } from 'react-native-really-awesome-button';
 import Apps from '../constants/Apps';
 import * as Progress from 'react-native-progress';
+import getUsageData from '../Service/UsageStatsService';
 
 
 const apps = ["Facebook", "Twitter", "PUBG", "Instagram"];
 
 const SeeMoreGraph = () => {
-  const time = [25, 30, 35, 15, 35, 32, 21, 32, 14, 35, 12, 38];
-  const data= [250, 390, 1000, 150]
+  const [usageData, setUsageData] = useState([]); // Store usage data in state
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await getUsageData();
+      if (data.error) {
+        console.warn(data.error);
+      } else {
+        setUsageData(data); // ✅ Update state and trigger re-render
+      }
+    };
+
+    fetchData();
+  }, []); // Runs only once when the component mounts
+
+  // Function to find app usage by package name
+  const checkData = (packageName) => {
+    const appData = usageData.find((item) => item.packageName === packageName);
+    return appData ? appData.usageTime  : "No data"; // ✅ Return readable time
+  };
+
+  //const time = [25, 30, 35, 15, 35, 32, 21, 32, 14, 35, 12, 38];
+  const time = Apps.map((app)=> checkData(app.data)/60);
+  const seconds = Apps.map(app=> checkData(app.data))
+  const data = Apps.map((app)=> checkData(app.data))
   const [isLine, changeSelection] = useState(true)
   const [total, setTotal] = useState(0)
-
+  console.log(data)
   const changeValue = () => {
     changeSelection(value =>
       !value
     )
   }
 
-  const scaledData= new Array()
+  const scaledData = new Array()
 
-  data.map((item, index)=>(
-    scaledData[index]= (item-0)/(1440-0)
+  data.map((item, index) => (
+    scaledData[index] = (item - 0) / (1440 - 0)
   ))
   useEffect(() => {
-    const sum = time.reduce((accumulator, currentValue) => accumulator + currentValue, 0)
+    const sum = seconds.reduce((accumulator, currentValue) => accumulator + currentValue, 0)
     const timeFormatted = convertSecondsToTime(sum); // Convert total seconds to time format
     setTotal(timeFormatted);
 
@@ -70,6 +94,9 @@ const SeeMoreGraph = () => {
   const handlePress = (graphType) => {
     setSelectedGraph(graphType);
   };
+
+
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <StatusBar barStyle="default" />
@@ -85,14 +112,14 @@ const SeeMoreGraph = () => {
           borderBottomWidth: 4,
           paddingTop: hp('0.6%')
         }}>
-        {/* <FontAwesome name="bars" size={35} color="grey" style={{ marginLeft: wp('4%') }} /> */}
+        <FontAwesome name="bars" size={35} color="grey" style={{ marginLeft: wp('4%') }} />
         <Text style={{
           fontSize: hp('3%'),
           marginLeft: wp('10%'),
           flex: 1
         }}>StayFree</Text>
-        {/* <Fontisto name="search" size={30} color="grey" style={{ marginVertical: hp('0.5%') }} />
-        <Ionicons name="share-social-sharp" size={35} color="grey" style={{ marginRight: wp('2%') }} /> */}
+        <Fontisto name="search" size={30} color="grey" style={{ marginVertical: hp('0.5%') }} />
+        <Ionicons name="share-social-sharp" size={35} color="grey" style={{ marginRight: wp('2%') }} />
       </View>
 
       <View style={{
@@ -112,7 +139,7 @@ const SeeMoreGraph = () => {
             ]}
             disabled={selectedGraph === 'line'}
           >
-            {/* <FontAwesome name="line-chart" size={15} color="black" /> */}
+            <FontAwesome name="line-chart" size={15} color="black" />
           </TouchableOpacity>
 
           {/* Bar Graph Button */}
@@ -124,7 +151,7 @@ const SeeMoreGraph = () => {
             ]}
             disabled={selectedGraph === 'bar'}
           >
-            {/* <FontAwesome name="bar-chart-o" size={15} color="black" /> */}
+            <FontAwesome name="bar-chart-o" size={15} color="black" />
           </TouchableOpacity>
         </View>
 
@@ -171,29 +198,36 @@ const SeeMoreGraph = () => {
       </View>
       {
         Apps.map((item, index) => (
-          <View style={{ flexDirection: "row",marginTop: hp('0.5%'), marginLeft: wp('2%') }}>
+          <View style={{ flexDirection: "row", marginTop: hp('0.5%'), marginLeft: wp('2%') }}>
             {item.icon}
-            <View style={{ marginLeft: wp('4%')}}>
+            <View style={{ marginLeft: wp('4%') }}>
               <Text style={styles.appName}>{item.app}</Text>
-              <Progress.Bar 
-                progress={scaledData[index]} 
-                width={wp('60%')} 
-                borderWidth= {0}
-                style={{marginTop: hp('0.6%')}}
-                color= {item.color}
+              <Progress.Bar
+                progress={scaledData[index]}
+                width={wp('60%')}
+                borderWidth={0}
+                style={{ marginTop: hp('0.6%') }}
+                color={item.color}
               />
- 
+
             </View>
 
             <View>
-              <Text style={{fontSize: hp('2%'), fontFamily: "TTHoves"}}>{convertSecondsToTime(data[index])}</Text>
-              <Text style={{fontSize: hp('2%'), fontFamily: "TTHoves"}}>{Math.floor((data[index]/1440)*100)}%</Text>
+              <Text style={{ fontSize: hp('2%'), fontFamily: "TTHoves" }}>{convertSecondsToTime(data[index])}</Text>
+              <Text style={{ fontSize: hp('2%'), fontFamily: "TTHoves" }}>{Math.floor((data[index] / 1440) * 100)}%</Text>
             </View>
-            
+
           </View>
         ))
       }
 
+      <View >
+        <Text >App Usage Stats</Text>
+        <Text >📘 Facebook: {checkData("com.facebook.katana")}</Text>
+        <Text >🌍 Chrome: {checkData("com.android.chrome")}</Text>
+        <Text >💬 WhatsApp: {checkData("com.whatsapp")}</Text>
+        <Text >💙 Messenger: {checkData("com.facebook.orca")}</Text>
+      </View>
 
     </SafeAreaView>
   );

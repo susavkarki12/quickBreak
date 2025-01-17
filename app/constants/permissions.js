@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, Alert, NativeModules, TouchableOpacity } from 'react-native';
 
-const { OverlayPermissionModule } = NativeModules;
+const { OverlayPermissionModule, OverlayServiceModule } = NativeModules;
 
 const Permissions = ({navigation}) => {
   const [hasPermission, setHasPermission] = useState(false);
@@ -27,17 +27,26 @@ const Permissions = ({navigation}) => {
     });
   };
 
-  const testOverlay=()=>{
-    navigation.navigate("TestOverlay")
+  const startOverlay=()=>{
+    if(hasPermission){
+      OverlayServiceModule.startOverlayService();
+    }else{
+      Alert.alert("Permission Required", "Please enable 'Display over other apps' permission.")
+    }
   }
+
+  const stopOverlay = () => {
+    OverlayServiceModule.stopOverlayService();
+  };
+
+  
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <Text>{hasPermission ? "Permission Granted" : "Permission Required"}</Text>
       {!hasPermission && <Button title="Request Permission" onPress={requestPermission} />}
-      <TouchableOpacity onPress={testOverlay}>
-        <Text style={{ fontSize: 20 }}>Enter here to test</Text>
-      </TouchableOpacity>
+      <Button title="Start Overlay" onPress={startOverlay} />
+      <Button title="Stop Overlay" onPress={stopOverlay} />
     </View>
   );
 };

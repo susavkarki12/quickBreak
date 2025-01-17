@@ -4,23 +4,21 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import { FontAwesome } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 
-const BreakPage = ({navigation}) => {
-    const navtobreathingpage=()=>{
-      navigation.navigate("BreathingExercise")
+const Finalhour = ({navigation}) => {
+    const navtoownrisk=()=>{
+        navigation.navigate("OwnRisk")
     }
-    
+   
     
   return (
     <View style={styles.container}>
         <View style={styles.appname}>
-
            <FontAwesome name="instagram" size={80} color="white" />
-           <Text style={styles.txt}>Time for a break?</Text>
-           <Text style={styles.txt1}>It's getting late.Consider closing instagram for {"\n"}                                  the night.</Text>
+           <Text style={styles.txt}>Final hour remaining{"\n"}complete your task !</Text>
         </View>
         <View style={styles.closeappbutton}>
-            
-            <TouchableOpacity  onPress={navtobreathingpage}><Text style={styles.textedit1}>Swipe to keep watching</Text></TouchableOpacity>
+            <TouchableOpacity><Text style={styles.textedit}>Close app</Text></TouchableOpacity>
+            <TouchableOpacity onPress={navtoownrisk}><Text style={styles.textedit1}>Continue in app</Text></TouchableOpacity>
         </View>
         
 
@@ -35,11 +33,10 @@ const styles= StyleSheet.create({
     appname:{
         alignItems:"center",
         marginTop:hp("25%"),
-        padding:hp('2%'),
         
     },
     closeappbutton:{
-        marginTop:hp("38%"),
+        marginTop:hp("36%"),
         alignItems:"center"
     },
     txt:{
@@ -48,20 +45,24 @@ const styles= StyleSheet.create({
         fontWeight:"bold",
         fontSize:wp("7%")
     },
-    txt1:{
-      color: 'rgba(255, 255, 255, 0.9)',
-      paddingTop:hp('2%'),
-      
-      fontSize:wp("4%")
-  },
-    
-
-    textedit1:{
-        color: 'rgba(255, 255, 255, 0.7)',
+    textedit:{
+        color:"black",
         
-        fontSize:wp("4%")
+        fontSize:wp("8%"),
+        borderBlockColor:"1px",
+        backgroundColor:'rgba(255, 255, 255, 0.8)',
+        width:wp("95%"),
+        textAlign:"center",
+        borderRadius:wp("3%"),
+        paddingVertical:hp("1%")
+        
+        
+    },textedit1:{
+        color:"white",
+        paddingTop:hp("2%"),
+        fontSize:wp("8%")
         
     }
 })
 
-export default BreakPage
+export default Finalhour

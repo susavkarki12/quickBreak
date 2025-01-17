@@ -1,24 +1,29 @@
-// import {Entypo, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
+import {Entypo, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
+import getUsageData from "../Service/UsageStatsService";
 const size=45
 const Apps=[
     {
         app: "Facebook",
-        // icon: <Entypo name="facebook" size={size} color="#1877F2" />,
+        data: "com.facebook.katana",
+        icon: <Entypo name="facebook" size={size} color="#1877F2" />,
         color: "blue"
     },
     {
-        app: "Instagram",
-        // icon: <Entypo name="instagram" size={size} color="#E1306C" />,
-        color: "#C13584"
+        app: "Chrome",
+        data: "com.android.chrome",
+        icon: <FontAwesome6 name="chrome" size={size} color="black" />,
+        color: "#5F6368"
     },
     {
-        app: "X",
-        // icon: <FontAwesome6 name="x-twitter" size={size} color="black" />,
-        color: "black"
+        app: "Whatsapp",
+        data: "com.whatsapp",
+        icon: <FontAwesome6 name="square-whatsapp" size={size} color="#25d366" />,
+        color: "#25d366"
     },
     {
         app: "Messenger",
-        // icon: <FontAwesome5 name="facebook-messenger" size={size} color="#0078FF" />,
+        data: "com.facebook.orca",
+        icon: <FontAwesome5 name="facebook-messenger" size={size} color="#0078FF" />,
         color: "blue"
     }
 ]
