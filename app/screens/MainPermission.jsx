@@ -4,14 +4,28 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import { LinearGradient } from "react-native-linear-gradient";
 import overlay from '../constants/permissions';
 import getUsageData from '../Service/UsageStatsService';
+import checkAndOpenBatterySettings from '../Service/BatteryOptimizationService';
+import { checkPermission, fetchData } from '../Service/UsageTime';
 
 
 const MainPermission = ({ navigation }) => {
+
+    const [usageData, setUsageData] = useState([]);
+
+    useEffect(() => {
+        getUsageData().then((data) => {
+            setUsageData(data);
+        });
+    }, []);
+
 
     const nav = () => {
         navigation.navigate("PreAppSelection")
     }
 
+    const backgroundPermission=()=>{
+        checkAndOpenBatterySettings();
+    }
     const overlayPermission = () => {
         navigation.navigate("Permission")
     }
@@ -20,11 +34,15 @@ const MainPermission = ({ navigation }) => {
     }
 
     const usageAccess = () => {
-        getUsageData();
-        console.log(getUsageData())
+        checkPermission()
+        const data= fetchData()
+        console.log(data)
     }
 
-    
+
+
+
+
 
     return (
 
@@ -35,10 +53,13 @@ const MainPermission = ({ navigation }) => {
                 permissions to finish setup.</Text>
             <View style={styles.containerView}>
                 <Text style={styles.primaryText}>Background Permission {"\n"}
-                    <Text style={[styles.secondaryText, { paddingTop: hp('5%') }]}> This allows us to remind you when it's time{"\n"} to close the app</Text>
+                    
+                        <Text style={[styles.secondaryText, { paddingTop: hp('5%') }]}> This allows us to remind you when it's time{"\n"} to close the app</Text>
+                    
                 </Text>
+                <TouchableOpacity onPress={backgroundPermission}>
                 <Text style={[styles.buttonText, { marginVertical: hp('2.6%') }]}>Allow</Text>
-
+                </TouchableOpacity>
             </View>
             <View style={[styles.containerView, { marginTop: hp('3%') }]}>
                 <Text style={styles.primaryText}>Display Over Other Apps

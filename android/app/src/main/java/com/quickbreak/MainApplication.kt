@@ -20,6 +20,7 @@ import com.asterinet.react.bgactions.BackgroundActionsPackage
 
 import com.quickbreak.UsageStatsPackage
 import com.quickbreak.UsagePermissionPackage
+import com.quickbreak.BatteryOptimizationPackage
 
 
 class MainApplication : Application(), ReactApplication {
@@ -35,7 +36,7 @@ class MainApplication : Application(), ReactApplication {
               add(BackgroundActionsPackage());
               add(UsageStatsPackage());
               add(UsagePermissionPackage());
-              
+              add(BatteryOptimizationPackage());
             }
 
         override fun getJSMainModuleName(): String = "index"

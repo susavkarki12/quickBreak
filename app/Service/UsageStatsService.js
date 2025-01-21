@@ -20,7 +20,7 @@ const getUsageData = async () => {
     }
 
     const usageData = await UsageStatsModule.getUsageStats();
-    
+    console.log(usageData)
     // Convert data to a readable format
     return Object.entries(usageData).map(([packageName, time]) => ({
       packageName,
@@ -35,5 +35,6 @@ const getUsageData = async () => {
   }
 };
 
+const usagedata= getUsageData()
 export default getUsageData
 

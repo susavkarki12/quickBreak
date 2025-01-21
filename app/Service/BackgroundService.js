@@ -1,31 +1,22 @@
-import BackgroundService from "react-native-background-actions";
-
-const sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
-
-const backgroundTask = async () => {
-    const a=1
-    for(i= a; i<100; i++){
-        console.log("App is running in BG...."+ i)
-        await sleep(5000);
-    }
-    
-};
-
-const options = {
-    taskName: "MyApp",
-    taskTitle: "Running in background",
-    taskDesc: "App is running",
-    taskIcon: { name: "ic_launcher", type: "mipmap" },
-    linkingURI: "myapp://",
-};
+import { NativeModules } from 'react-native';
+const { BackgroundService } = NativeModules;
 
 const startBackgroundService = async () => {
-    await BackgroundService.start(backgroundTask, options);
-    BackgroundService.updateNotification({ taskDesc: "Still running..." });
+  try {
+    await BackgroundService.startBackgroundService();
+    console.log("Service started");
+  } catch (e) {
+    console.error("Error starting service: ", e);
+  }
 };
 
 const stopBackgroundService = async () => {
-    await BackgroundService.stop();
+  try {
+    await BackgroundService.stopBackgroundService();
+    console.log("Service stopped");
+  } catch (e) {
+    console.error("Error stopping service: ", e);
+  }
 };
 
 export { startBackgroundService, stopBackgroundService };
