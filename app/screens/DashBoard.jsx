@@ -18,7 +18,7 @@ const data = rawData.map((item, index) => ({
 const DashBoard = ({ navigation }) => {
 
   const navToVIP = () => {
-    navigation.navigate("Vip")
+    navigation.navigate("AppList")
   }
 
   const navToSeeMore = () => {

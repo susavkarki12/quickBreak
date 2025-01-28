@@ -21,7 +21,7 @@ import com.asterinet.react.bgactions.BackgroundActionsPackage
 import com.quickbreak.UsageStatsPackage
 import com.quickbreak.UsagePermissionPackage
 import com.quickbreak.BatteryOptimizationPackage
-
+import com.quickbreak.RNAndroidInstalledAppsPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -37,6 +37,10 @@ class MainApplication : Application(), ReactApplication {
               add(UsageStatsPackage());
               add(UsagePermissionPackage());
               add(BatteryOptimizationPackage());
+              add(RNAndroidInstalledAppsPackage());
+              add(AppUsagePackage());
+              add(FloatingBubblePackage());
+              add(ForegroundAppDetectorPackage());
             }
 
         override fun getJSMainModuleName(): String = "index"

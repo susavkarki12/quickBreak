@@ -2,21 +2,21 @@ import { View, Text } from 'react-native'
 import React, {useEffect} from 'react'
 import AppNavigation from './app/navigation/AppNavigation'
 import { NavigationContainer } from '@react-navigation/native'
-import { startBackgroundService } from './app/Service/BackgroundService'
+import BackgroundTimer from "react-native-background-timer";
 
 const App = () => {
 
-  useEffect(()=>{
-    const startService= async()=>{
-      await startBackgroundService();
-    }
+  useEffect(() => {
+   // Start a timer that runs once after X milliseconds
+  const timeoutId = BackgroundTimer.setTimeout(() => {
+    // this will be executed once after 10 seconds
+    // even when app is the the background
+      console.log('tac');
+  }, 1000);
 
-    startService();
-    
-    return ()=> {
-      console.log("App is unmounting... ")
-    }
-  }, [])
+  // Cancel the timeout if necessary
+  BackgroundTimer.clearTimeout(timeoutId);
+  }, []);
 
   return (
     <NavigationContainer>

@@ -1,5 +1,8 @@
 pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
 plugins { id("com.facebook.react.settings") }
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex ->
   def command = [
     'node',
@@ -20,4 +23,7 @@ includeBuild('../node_modules/@react-native/gradle-plugin')
 include ':react-native-background-actions'
 project(':react-native-background-actions').projectDir = new File(rootProject.projectDir, 	'../node_modules/react-native-background-actions/android')
 apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
+
+
+
 useExpoModules()

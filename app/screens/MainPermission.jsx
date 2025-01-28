@@ -7,6 +7,13 @@ import getUsageData from '../Service/UsageStatsService';
 import checkAndOpenBatterySettings from '../Service/BatteryOptimizationService';
 import { checkPermission, fetchData } from '../Service/UsageTime';
 
+import { NativeModules, Alert } from 'react-native';
+
+const { ForegroundAppDetector  } = NativeModules;
+
+// Call the native method to close a specific app
+  // For example, closing Facebook app
+
 
 const MainPermission = ({ navigation }) => {
 
@@ -18,25 +25,47 @@ const MainPermission = ({ navigation }) => {
         });
     }, []);
 
+    const checkForegroundApp = async () => {
+        try {
+          // Replace with the third-party app's package name
+          const thirdPartyAppPackage = 'com.facebook.katana';
+      
+          // Get the current foreground app
+          const foregroundApp = await ForegroundAppDetector.getForegroundApp();
+      
+          if (foregroundApp === thirdPartyAppPackage) {
+            // Notify the user to close the third-party app
+            Alert.alert('Warning', 'Please close the third-party app manually.');
+      
+            // Bring your app back to the foreground
+            await ForegroundAppDetector.bringToForeground();
+            console.log('App brought to foreground');
+          } else {
+            console.log('Your app is in the foreground or no third-party app is open.');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      };
+
 
     const nav = () => {
         navigation.navigate("PreAppSelection")
     }
 
-    const backgroundPermission=()=>{
+    const backgroundPermission = () => {
         checkAndOpenBatterySettings();
     }
     const overlayPermission = () => {
-        navigation.navigate("Permission")
+        navigation.navigate("Overlay")
     }
     const autoStart = () => {
-        openAutoStartSettings()
+        checkForegroundApp();
     }
 
     const usageAccess = () => {
-        checkPermission()
-        const data= fetchData()
-        console.log(data)
+        checkPermission();
+        fetchData();
     }
 
 
@@ -53,12 +82,12 @@ const MainPermission = ({ navigation }) => {
                 permissions to finish setup.</Text>
             <View style={styles.containerView}>
                 <Text style={styles.primaryText}>Background Permission {"\n"}
-                    
-                        <Text style={[styles.secondaryText, { paddingTop: hp('5%') }]}> This allows us to remind you when it's time{"\n"} to close the app</Text>
-                    
+
+                    <Text style={[styles.secondaryText, { paddingTop: hp('5%') }]}> This allows us to remind you when it's time{"\n"} to close the app</Text>
+
                 </Text>
                 <TouchableOpacity onPress={backgroundPermission}>
-                <Text style={[styles.buttonText, { marginVertical: hp('2.6%') }]}>Allow</Text>
+                    <Text style={[styles.buttonText, { marginVertical: hp('2.6%') }]}>Allow</Text>
                 </TouchableOpacity>
             </View>
             <View style={[styles.containerView, { marginTop: hp('3%') }]}>

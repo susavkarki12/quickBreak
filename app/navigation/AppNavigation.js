@@ -22,7 +22,9 @@ import BreakPage from "../screens/BreakPage";
 import BreathingExercise from "../screens/BreathingExercise";
 import UsageStatsComponent from "../Service/UsageStatsService";
 import UsageStatsScreen from "../Service/UsageStatsService";
-
+import AppList from "../screens/AppList";
+import Overlay from "../screens/OverlayScreen";
+import OverlayComponent from "../screens/OverlayComponent";
 
 const AppStack = createNativeStackNavigator();
 
@@ -53,6 +55,8 @@ const AppNavigation = () => {
       <AppStack.Screen name="OwnRisk" component={Ownrisk} />
       <AppStack.Screen name="BreakPage" component={BreakPage} />
       <AppStack.Screen name="BreathingExercise" component={BreathingExercise} />
+      <AppStack.Screen name="AppList" component={AppList} />
+      <AppStack.Screen name="Overlay" component={Overlay} />
       
     </AppStack.Navigator>
    

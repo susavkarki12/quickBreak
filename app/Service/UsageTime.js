@@ -6,34 +6,39 @@ import {
     queryUsageStats,
     showUsageAccessSettings,
 } from '@brighthustle/react-native-usage-stats-manager';
-  
-const fetchData=()=>{
-    // Get the current date
-    const startDate = new Date();
+
+// Make fetchData async to use await
+const fetchData = async () => {
+    // Get the current date (midnight of today)
+    const startDate = new Date()
     startDate.setHours(0, 0, 0, 0); // Set to midnight (00:00:00)
 
     // Get the current time as the end date
-    const endDate = new Date(); // Current date and time
-    
-    const startMilliseconds = new Date(startDateString).getTime();
-    const endMilliseconds = new Date(endDateString).getTime();
-    
+    const endDate = new Date() // Current date and time
+
+    // Convert to milliseconds
+    const startMilliseconds = startDate.getTime();
+    const endMilliseconds = endDate.getTime();
+    console.log("start")
+
+    // Query usage stats between the start and end time
     const result = await queryUsageStats(
         EventFrequency.INTERVAL_DAILY,
         startMilliseconds,
         endMilliseconds
-    )
+    );
+    console.log(result)
 
-    return result
-}  
+    
+};
 
-
-const checkPermsiion=()=>{
+const checkPermission = () => {
     checkForPermission().then((res: any) => {
         if (!res) {
-          showUsageAccessSettings('');
+            showUsageAccessSettings('');
         }
     });
-}
+};
 
-export default {checkPermsiion, fetchData}
+// Corrected export statement for named exports
+export { checkPermission, fetchData };
