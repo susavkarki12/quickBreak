@@ -26,6 +26,7 @@ const Apps=[
         icon: <FontAwesome5 name="facebook-messenger" size={size} color="#0078FF" />,
         color: "blue"
     }
+    
 ]
 
 export default Apps

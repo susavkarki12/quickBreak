@@ -22,7 +22,7 @@ const DashBoard = ({ navigation }) => {
   }
 
   const navToSeeMore = () => {
-    navigation.navigate("SeeMoreGraph")
+    navigation.navigate("AnalyticsPage")
   }
 
   const navToSettings=()=>{

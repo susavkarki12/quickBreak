@@ -108,6 +108,7 @@ const AppList = () => {
                 </LinearGradient>
             </TouchableOpacity>
             </View>
+
         </View>
     );
 };
@@ -186,3 +187,4 @@ const styles = StyleSheet.create({
 });
 
 export default AppList;
+

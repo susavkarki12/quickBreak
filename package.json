@@ -25,6 +25,7 @@
     "react-native-app-usage": "^0.1.6",
     "react-native-asset": "^2.1.1",
     "react-native-background-actions": "^4.0.1",
+    "react-native-background-fetch": "^4.2.7",
     "react-native-background-timer": "^2.4.1",
     "react-native-device-info": "^14.0.2",
     "react-native-gesture-handler": "^2.21.2",

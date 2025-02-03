@@ -3,51 +3,21 @@ import React, { useState, useEffect } from 'react'
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { LinearGradient } from "react-native-linear-gradient";
 import overlay from '../constants/permissions';
-import getUsageData from '../Service/UsageStatsService';
 import checkAndOpenBatterySettings from '../Service/BatteryOptimizationService';
 import { checkPermission, fetchData } from '../Service/UsageTime';
-
-import { NativeModules, Alert } from 'react-native';
-
-const { ForegroundAppDetector  } = NativeModules;
-
-// Call the native method to close a specific app
-  // For example, closing Facebook app
-
+import getUsageData from '../Service/UsageStatsService';
 
 const MainPermission = ({ navigation }) => {
-
-    const [usageData, setUsageData] = useState([]);
-
+    const [usageData, setUsageData] = useState([]); // State to store usage data
     useEffect(() => {
-        getUsageData().then((data) => {
-            setUsageData(data);
-        });
+        const getData = async () => {
+            await checkPermission(); // Ensure permission is granted
+            const data = await fetchData(); // Fetch foreground times
+            setUsageData(data); // Store data in state
+        };
+
+        getData(); // Call function on component mount
     }, []);
-
-    const checkForegroundApp = async () => {
-        try {
-          // Replace with the third-party app's package name
-          const thirdPartyAppPackage = 'com.facebook.katana';
-      
-          // Get the current foreground app
-          const foregroundApp = await ForegroundAppDetector.getForegroundApp();
-      
-          if (foregroundApp === thirdPartyAppPackage) {
-            // Notify the user to close the third-party app
-            Alert.alert('Warning', 'Please close the third-party app manually.');
-      
-            // Bring your app back to the foreground
-            await ForegroundAppDetector.bringToForeground();
-            console.log('App brought to foreground');
-          } else {
-            console.log('Your app is in the foreground or no third-party app is open.');
-          }
-        } catch (error) {
-          console.error('Error:', error);
-        }
-      };
-
 
     const nav = () => {
         navigation.navigate("PreAppSelection")
@@ -64,14 +34,8 @@ const MainPermission = ({ navigation }) => {
     }
 
     const usageAccess = () => {
-        checkPermission();
-        fetchData();
+        fetchData()
     }
-
-
-
-
-
 
     return (
 

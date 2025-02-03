@@ -41,6 +41,7 @@ class MainApplication : Application(), ReactApplication {
               add(AppUsagePackage());
               add(FloatingBubblePackage());
               add(ForegroundAppDetectorPackage());
+              
             }
 
         override fun getJSMainModuleName(): String = "index"

@@ -7,7 +7,6 @@ import MainPermission from "../screens/MainPermission";
 import App from "../../App";
 import PreAppSelection from "../screens/PreAppSelection";
 import DashBoard from "../screens/DashBoard";
-import SeeMoreGraph from "../screens/SeeMoreGraph";
 import { Setting } from "../screens/Setting";
 import Permissions from "../constants/permissions";
 import OverlayScreen from "../constants/OverlayScreen";
@@ -25,6 +24,7 @@ import UsageStatsScreen from "../Service/UsageStatsService";
 import AppList from "../screens/AppList";
 import Overlay from "../screens/OverlayScreen";
 import OverlayComponent from "../screens/OverlayComponent";
+import AnalyticsPage from "../screens/AnalyticsPage";
 
 const AppStack = createNativeStackNavigator();
 
@@ -42,7 +42,7 @@ const AppNavigation = () => {
       <AppStack.Screen name="MainPermission" component={MainPermission} />
       <AppStack.Screen name="PreAppSelection" component={PreAppSelection} />
       <AppStack.Screen name="DashBoard" component={DashBoard} />
-      <AppStack.Screen name="SeeMoreGraph" component={SeeMoreGraph} />
+      <AppStack.Screen name="AnalyticsPage" component={AnalyticsPage} />
       <AppStack.Screen name="Setting" component={Setting} />
       <AppStack.Screen name="Permission" component={Permissions} />
       <AppStack.Screen name="TestOverlay" component={OverlayScreen} />

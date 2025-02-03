@@ -20,11 +20,14 @@ class UsageStatsModule(reactContext: ReactApplicationContext) : ReactContextBase
             val currentTime = System.currentTimeMillis()
 
             val startDate = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
+                add(Calendar.DAY_OF_MONTH, -1)    // Subtract one day to get the previous day
+                set(Calendar.HOUR_OF_DAY, 17)       // Set the hour to 0 (midnight)
+                set(Calendar.MINUTE, 45)            // Set the minutes to 0
+                set(Calendar.SECOND, 0)            // Set the seconds to 0
+                set(Calendar.MILLISECOND, 0)       // Set the milliseconds to 0
             }
+
+            println(startDate)  // Prints with a newline after it
 
 
              // Calculate midnight in the device's timezone

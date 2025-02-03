@@ -9,27 +9,32 @@ import {
 
 // Make fetchData async to use await
 const fetchData = async () => {
-    // Get the current date (midnight of today)
-    const startDate = new Date()
-    startDate.setHours(0, 0, 0, 0); // Set to midnight (00:00:00)
+    const startDate = new Date();
+    startDate.setUTCHours(18, 15, 0, 0); // Set to midnight in UTC
+    startDate.setUTCDate(startDate.getUTCDate() - 1);
+    const endDate= new Date()
+    console.log(startDate)
+    console.log(endDate)
 
-    // Get the current time as the end date
-    const endDate = new Date() // Current date and time
-
-    // Convert to milliseconds
     const startMilliseconds = startDate.getTime();
+    console.log(startMilliseconds)
     const endMilliseconds = endDate.getTime();
+    console.log(endMilliseconds)
     console.log("start")
 
     // Query usage stats between the start and end time
     const result = await queryUsageStats(
-        EventFrequency.INTERVAL_DAILY,
+        EventFrequency.INTERVAL_BEST,
         startMilliseconds,
         endMilliseconds
     );
     console.log(result)
-
-    
+    const foregroundTimes = Object.entries(result).map(([packageName, info], index) => ({
+        id: index + 1, // Adding a unique id starting from 1
+        packageName: packageName,
+        timeInForeground: info.totalTimeInForeground
+    }));
+    return foregroundTimes
 };
 
 const checkPermission = () => {
