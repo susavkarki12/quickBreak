@@ -45,7 +45,6 @@ const AppNavigation = () => {
       <AppStack.Screen name="AnalyticsPage" component={AnalyticsPage} />
       <AppStack.Screen name="Setting" component={Setting} />
       <AppStack.Screen name="Permission" component={Permissions} />
-      <AppStack.Screen name="TestOverlay" component={OverlayScreen} />
       <AppStack.Screen name="Vip" component={VipComponent} />
       <AppStack.Screen name="ReminderPage" component={ReminderPage} />
       <AppStack.Screen name="ConfirmPage" component={ConfirmPage} />

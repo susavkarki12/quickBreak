@@ -10,11 +10,11 @@ import {
 // Make fetchData async to use await
 const fetchData = async () => {
     const startDate = new Date();
-    startDate.setUTCHours(18, 15, 0, 0); // Set to midnight in UTC
+    startDate.setUTCHours(0,0,0,0); // Set to midnight in UTC
     startDate.setUTCDate(startDate.getUTCDate() - 1);
     const endDate= new Date()
-    console.log(startDate)
-    console.log(endDate)
+    let currentDate = new Date();
+console.log("gf",currentDate);
 
     const startMilliseconds = startDate.getTime();
     console.log(startMilliseconds)

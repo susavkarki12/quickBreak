@@ -10,9 +10,6 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
-
 
     <application
       android:name=".MainApplication"
@@ -43,6 +40,19 @@
     android:name="com.supersami.foregroundservice.ForegroundServiceTask"
     android:foregroundServiceType="dataSync"
   /> 
+  <service
+    android:name=".MyAccessibilityService"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+    android:exported="false"> <!-- Add this line -->
+
+    <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+    </intent-filter>
+
+    <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/accessibility_service_config" />
+  </service>
 
       <activity
         android:name=".MainActivity"

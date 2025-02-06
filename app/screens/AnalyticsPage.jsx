@@ -16,8 +16,7 @@ import {
 } from 'react-native-responsive-screen';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import { checkPermission, fetchData } from '../Service/UsageTime';
-import { NativeModules } from 'react-native';
-const { RNAndroidInstalledApps } = NativeModules;
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const AnalyticsPage = ({ navigation }) => {
   const [usageData, setUsageData] = useState([]); // State to store usage data
@@ -26,21 +25,26 @@ const AnalyticsPage = ({ navigation }) => {
   const [selectedApps, setSelectedApps] = useState([]); // Selected apps
   const [searchText, setSearchText] = useState("");
 
-  // Fetch non-system apps from the native module
   useEffect(() => {
-    RNAndroidInstalledApps.getNonSystemApps()
-      .then((nonSystemApps) => {
-        const appList = nonSystemApps.map((app) => ({
-          appName: app.appName,
-          packageName: app.packageName,
-          icon: app.icon
-        }));
-        setApps(appList);
-        setFilteredApps(appList);
-      })
-      .catch((error) => {
-        console.error("Error fetching non-system apps:", error);
-      });
+    const getStoredApps = async () => {
+      try {
+        const storedApps = await AsyncStorage.getItem('apps');
+  
+        if (storedApps) {
+          const parsedApps = JSON.parse(storedApps);
+  
+          // Sort the apps alphabetically by appName
+          const sortedApps = parsedApps.sort((a, b) => a.appName.localeCompare(b.appName));
+  
+          setApps(sortedApps); // Update the full app list
+          setFilteredApps(sortedApps); // Also update the filtered list
+        }
+      } catch (error) {
+        console.error("Error retrieving stored apps:", error);
+      }
+    };
+  
+    getStoredApps();
   }, []);
 
   useEffect(() => {
@@ -70,7 +74,6 @@ const AnalyticsPage = ({ navigation }) => {
     { label: 'Calendar', percentage: 6, color: '#FFC0CB' },
     { label: 'Other', percentage: 10, color: '#A9A9A9' },
   ];
-
   const getTime = (packageName) => {
     const time = usageData.find((data) => data.packageName === packageName)
     return time ? time.timeInForeground : "data not found"
@@ -106,13 +109,13 @@ const AnalyticsPage = ({ navigation }) => {
     if (text.trim() === "") {
       setFilteredApps(apps);
     } else {
-      setFilteredApps(
-        apps.filter((app) =>
-          app.appName.toLowerCase().includes(text.toLowerCase())
-        )
+      const filtered = apps.filter((app) =>
+        app.appName.toLowerCase().includes(text.toLowerCase())
       );
+      setFilteredApps(filtered.sort((a, b) => a.appName.localeCompare(b.appName)));
     }
   };
+  
   const radius = 80;
   const strokeWidth = wp('1.3%');
   const centerX = 150;
@@ -217,7 +220,7 @@ const AnalyticsPage = ({ navigation }) => {
               value={searchText}
               onChangeText={handleSearch}
             />
-            
+
           </View>
           <View style={styles.filterbutton}>
             <TouchableOpacity style={styles.button1}>
@@ -308,11 +311,20 @@ const AnalyticsPage = ({ navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity onPress={navtovip} >
             <View style={[styles.footerLogo, { marginLeft: wp('2%') }]}>
-              source={require("./icons/4.png")}
-              <Ionicons style={{
-                marginLeft: wp('1.7%'),
-                marginTop: hp('0.8%')
-              }} name="person" size={wp('7%')} color="white" />
+              <Image
+                source={require("./icons/4.png")}
+                style={{
+                  width: wp('7%'),
+                  height: wp('7%'),
+                }}
+              />
+              <Ionicons
+                style={{
+                  marginLeft: wp('1.7%'),
+                  marginTop: hp('0.8%')
+                }}
+                name="person" size={wp('7%')} color="white"
+              />
             </View>
           </TouchableOpacity>
         </LinearGradient>

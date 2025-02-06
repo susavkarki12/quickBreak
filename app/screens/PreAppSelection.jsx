@@ -7,7 +7,7 @@ import { LinearGradient } from "react-native-linear-gradient";
 const PreAppSelection = ({ navigation }) => {
 
     const nav=()=>{
-        navigation.navigate("DashBoard")
+        navigation.navigate("AppList")
     }
 
     return (

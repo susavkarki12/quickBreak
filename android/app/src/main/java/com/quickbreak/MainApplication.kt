@@ -32,7 +32,6 @@ class MainApplication : Application(), ReactApplication {
               // Packages that cannot be autolinked yet can be added manually here, for example:
               // add(MyReactNativePackage())
               add(OverlayPermissionPackage());
-              add(OverlayServicePackage());
               add(BackgroundActionsPackage());
               add(UsageStatsPackage());
               add(UsagePermissionPackage());
@@ -41,7 +40,8 @@ class MainApplication : Application(), ReactApplication {
               add(AppUsagePackage());
               add(FloatingBubblePackage());
               add(ForegroundAppDetectorPackage());
-              
+              add(OverlayPackage());
+              add(AppBlockerPackage());
             }
 
         override fun getJSMainModuleName(): String = "index"

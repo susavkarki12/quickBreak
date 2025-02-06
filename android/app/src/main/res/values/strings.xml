@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">quickBreak</string>
+    <string name="accessibility_service_description">This is an accessibility service to block apps</string>
+
 </resources>

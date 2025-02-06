@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     View,
     Text,
@@ -10,54 +10,84 @@ import {
 } from "react-native";
 import { NativeModules } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import { LinearGradient } from "react-native-linear-gradient";
-
+import LinearGradient from "react-native-linear-gradient";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { RNAndroidInstalledApps } = NativeModules;
-const AppList = () => {
-    const [apps, setApps] = useState([]); // Full list of apps
-    const [filteredApps, setFilteredApps] = useState([]); // Filtered list based on search
-    const [selectedApps, setSelectedApps] = useState([]); // Selected apps
+
+const AppList = ({ navigation }) => {
+    const [apps, setApps] = useState([]);
+    const [filteredApps, setFilteredApps] = useState([]);
+    const [selectedApps, setSelectedApps] = useState([]);
     const [searchText, setSearchText] = useState("");
 
-    // Fetch non-system apps from the native module
     useEffect(() => {
-        RNAndroidInstalledApps.getNonSystemApps()
-            .then((nonSystemApps) => {
-                const appList = nonSystemApps.map((app) => ({
-                    appName: app.appName,
-                    packageName: app.packageName,
-                    icon: app.icon
-                }));
-                setApps(appList);
-                setFilteredApps(appList);
-            })
-            .catch((error) => {
-                console.error("Error fetching non-system apps:", error);
-            });
+        const getStoredApps = async () => {
+            try {
+                const storedApps = await AsyncStorage.getItem('apps');
+                const storedSelectedApps = await AsyncStorage.getItem('selectedApps');
+
+                if (storedApps) {
+                    const parsedApps = JSON.parse(storedApps);
+                    setApps(parsedApps);
+                    setFilteredApps(sortApps(parsedApps, JSON.parse(storedSelectedApps) || []));
+                }
+
+                if (storedSelectedApps) {
+                    setSelectedApps(JSON.parse(storedSelectedApps));
+                }
+            } catch (error) {
+                console.error("Error retrieving stored data:", error);
+            }
+        };
+
+        getStoredApps();
     }, []);
 
-    // Filter apps based on search text
+    // Sort apps: selected ones first and then alphabetically
+    const sortApps = (appList, selectedList) => {
+        // Filter selected and non-selected apps
+        const selectedApps = appList.filter((app) => selectedList.includes(app.packageName));
+        const nonSelectedApps = appList.filter((app) => !selectedList.includes(app.packageName));
+    
+        // Sort both selected and non-selected apps alphabetically by appName
+        const sortedSelectedApps = selectedApps.sort((a, b) => a.appName.localeCompare(b.appName));
+        const sortedNonSelectedApps = nonSelectedApps.sort((a, b) => a.appName.localeCompare(b.appName));
+    
+        // Combine them so selected apps come first
+        return [...sortedSelectedApps, ...sortedNonSelectedApps];
+    };
+    
+
+    // Handle search filtering
     const handleSearch = (text) => {
         setSearchText(text);
         if (text.trim() === "") {
-            setFilteredApps(apps);
+            setFilteredApps(sortApps(apps, selectedApps));
         } else {
             setFilteredApps(
-                apps.filter((app) =>
-                    app.appName.toLowerCase().includes(text.toLowerCase())
+                sortApps(
+                    apps.filter((app) =>
+                        app.appName.toLowerCase().includes(text.toLowerCase())
+                    ),
+                    selectedApps
                 )
             );
         }
     };
 
-    // Toggle app selection
-    const toggleSelection = (packageName) => {
-        if (selectedApps.includes(packageName)) {
-            setSelectedApps(selectedApps.filter((pkg) => pkg !== packageName));
-        } else {
-            setSelectedApps([...selectedApps, packageName]);
-        }
+    // Toggle app selection and update sorting
+    const toggleSelection = async (packageName) => {
+        setSelectedApps((prevSelected) => {
+            const updatedSelection = prevSelected.includes(packageName)
+                ? prevSelected.filter(pkg => pkg !== packageName)
+                : [...prevSelected, packageName];
+
+            AsyncStorage.setItem('selectedApps', JSON.stringify(updatedSelection));
+
+            setFilteredApps(sortApps(apps, updatedSelection)); // Re-sort apps after selection change
+            return updatedSelection;
+        });
     };
 
     // Render each app item
@@ -65,22 +95,31 @@ const AppList = () => {
         const isSelected = selectedApps.includes(item.packageName);
         return (
             <TouchableOpacity
-                style={styles.appItem}
+                style={[styles.appItem, isSelected && styles.selectedApp]}
                 onPress={() => toggleSelection(item.packageName)}
             >
                 <View style={[styles.radioCircle, isSelected && styles.selectedCircle]} />
-                <View style={{paddingHorizontal: wp("5%")}}>
-                <Image
-                    source={{ uri: `data:image/png;base64,${item.icon}` }}
-                    style={styles.appIcon}
-                />
+                <View style={{ paddingHorizontal: wp("5%") }}>
+                    <Image
+                        source={{ uri: `data:image/png;base64,${item.icon}` }}
+                        style={styles.appIcon}
+                    />
                 </View>
-
                 <Text style={styles.appName}>{item.appName}</Text>
-
             </TouchableOpacity>
         );
     };
+
+    const selectApps = async () => {
+        try {
+            await AsyncStorage.setItem('selectedApps', JSON.stringify(selectedApps));
+            navigation.navigate("DashBoard");
+        } catch (error) {
+            console.error("Error saving selected apps:", error);
+        }
+    };
+
+    const memoizedFilteredApps = useMemo(() => filteredApps, [filteredApps]); // Memoizing the filtered list
 
     return (
         <View style={styles.container}>
@@ -88,27 +127,28 @@ const AppList = () => {
             <TextInput
                 style={styles.searchBar}
                 placeholder="Search apps"
+                placeholderTextColor="#aaa"
                 value={searchText}
                 onChangeText={handleSearch}
             />
             <FlatList
-                data={filteredApps}
+                data={memoizedFilteredApps}
                 keyExtractor={(item) => item.packageName}
                 renderItem={renderAppItem}
+                ListEmptyComponent={<Text style={styles.noAppsText}>No apps found</Text>}
             />
-            <View style={{paddingTop:10 }}>
-            <TouchableOpacity >
-                <LinearGradient
-                    colors={["#ff3131", "#ff914d"]}
-                    start={{ x: 0, y: 1 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.linearGrad}
-                >
-                    <Text style={styles.linearText}>Select Apps</Text>
-                </LinearGradient>
-            </TouchableOpacity>
+            <View style={{ paddingTop: 10 }}>
+                <TouchableOpacity onPress={selectApps}>
+                    <LinearGradient
+                        colors={["#ff3131", "#ff914d"]}
+                        start={{ x: 0, y: 1 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.linearGrad}
+                    >
+                        <Text style={styles.linearText}>Select Apps</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
             </View>
-
         </View>
     );
 };
@@ -121,9 +161,7 @@ const styles = StyleSheet.create({
     },
     header: {
         fontSize: 20,
-        
         fontFamily: "TTHoves",
-        //fontWeight: "bold",
         marginBottom: 16,
     },
     searchBar: {
@@ -144,15 +182,18 @@ const styles = StyleSheet.create({
         elevation: 2,
         justifyContent: "space-between",
     },
+    selectedApp: {
+        backgroundColor: "#ffebcc",
+    },
     appName: {
         paddingLeft: 6,
         flex: 1,
         fontSize: wp("4.5%"),
-        fontFamily: "TTHoves"
+        fontFamily: "TTHoves",
     },
-    appIcon:{
-        height:hp("5%"),
-        width:wp("10%"),
+    appIcon: {
+        height: hp("5%"),
+        width: wp("10%"),
     },
     radioCircle: {
         width: 20,
@@ -165,26 +206,23 @@ const styles = StyleSheet.create({
         backgroundColor: "#007bff",
         borderColor: "#007bff",
     },
-    doneButton: {
-        backgroundColor: "#ff6b6b",
-        padding: 12,
-        borderRadius: 8,
-        alignItems: "center",
+    noAppsText: {
+        textAlign: "center",
+        marginTop: 20,
+        color: "#6c757d",
     },
     linearText: {
         fontFamily: "TTHoves",
         color: "white",
         alignSelf: "center",
-        fontSize: hp('4%'),
-        marginVertical: hp('1%')
+        fontSize: hp("4%"),
+        marginVertical: hp("1%"),
     },
     linearGrad: {
-        width: wp('88%'),
+        width: wp("88%"),
         alignSelf: "center",
         borderRadius: 30,
-        
     },
 });
 
 export default AppList;
-
