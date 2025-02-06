@@ -96,7 +96,7 @@ const checkForegroundApp = async () => {
       setTimeout(() => {
         Alert.alert('Warning', 'Please close the third-party app manually.');
       }, 0);
-      ForegroundAppDetector.bringToForeground(restrictedApp)
+      ForegroundAppDetector.bringToForeground()
       console.log('App brought to foreground');
     } else {
       console.log('No restricted app is open.');
