@@ -4,18 +4,14 @@ import AppNavigation from './app/navigation/AppNavigation';
 import { NavigationContainer } from '@react-navigation/native';
 import ReactNativeForegroundService from "@supersami/rn-foreground-service";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { requestOverlayPermission, setRestrictedApp, showOverlayIfNeeded } from './app/constants/OverlayScreen';
 
-const { RNAndroidInstalledApps, ForegroundAppDetector, OverlayModule } = NativeModules;
+const { RNAndroidInstalledApps, ForegroundAppDetector, AppBlocker } = NativeModules;
 
 const App = () => {
   const [apps, setApps] = useState([]); // Full list of apps
   const [filteredApps, setFilteredApps] = useState([]); // Filtered list based on search
 
   useEffect(() => {
-    // Request overlay permission
-    requestOverlayPermission();
-
     console.log("Starting foreground service...");
 
     ReactNativeForegroundService.start({
@@ -34,7 +30,18 @@ const App = () => {
         console.log("Foreground service started");
 
         ReactNativeForegroundService.add_task(
-          checkForegroundApp, 
+          async () => {
+            try {
+              const storedSelectedApps = await AsyncStorage.getItem('selectedApps');
+              // Ensure selectedApps is always an array
+              const selectedAppsList = storedSelectedApps ? JSON.parse(storedSelectedApps) : [];
+              // Log to ensure we're getting the array correctly
+              console.log("Latest selected apps inside task:", selectedAppsList);
+              await checkForegroundApp(Array.isArray(selectedAppsList) ? selectedAppsList : []);
+            } catch (error) {
+              console.error("Error fetching selected apps from storage:", error);
+            }
+          },
           {
             delay: 5000, 
             onLoop: true,
@@ -73,9 +80,6 @@ const App = () => {
     };
     storeApps();
   }, [apps, filteredApps]);
-  useEffect(() => {
-    setRestrictedApp('com.facebook.katana');
-  }, []);
 
   return (
     <NavigationContainer>
@@ -84,28 +88,34 @@ const App = () => {
   );
 };
 
-const checkForegroundApp = async () => {
+// Updated to check all selected apps
+const checkForegroundApp = async (selectedApps) => {
   try {
-    const restrictedApp = 'com.facebook.katana'; // Example: Facebook
-    OverlayModule.setRestrictedApp('com.facebook.katana');
+    console.log("Checking foreground app...");
+    console.log("Selected apps for blocking:", selectedApps);
 
     const foregroundApp = await ForegroundAppDetector.getForegroundApp();
     console.log(`Foreground app detected: ${foregroundApp}`);
 
-    if (foregroundApp === restrictedApp) {
+    // Filter the selected apps to find ones that are open
+    const appsToBlock = selectedApps.filter((pkg) => pkg === foregroundApp);
+    
+    if (appsToBlock.length > 0) {
+      console.log("Blocking apps:", appsToBlock);
+
       setTimeout(() => {
         Alert.alert('Warning', 'Please close the third-party app manually.');
       }, 0);
-      ForegroundAppDetector.bringToForeground()
-      console.log('App brought to foreground');
+      
+      // Pass the array of apps to block
+      AppBlocker.setBlockedApps(selectedApps);
+      console.log("Blocked foreground apps.");
     } else {
-      console.log('No restricted app is open.');
+      console.log("No restricted app is open.");
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error in checkForegroundApp:", error);
   }
 };
-
-
 
 export default App;

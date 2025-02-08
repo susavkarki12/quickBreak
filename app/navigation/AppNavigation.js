@@ -9,7 +9,6 @@ import PreAppSelection from "../screens/PreAppSelection";
 import DashBoard from "../screens/DashBoard";
 import { Setting } from "../screens/Setting";
 import Permissions from "../constants/permissions";
-import OverlayScreen from "../constants/OverlayScreen";
 import VipComponent from "../screens/Vip";
 import ReminderPage from "../screens/ReminderPage";
 import ConfirmPage from "../screens/ConfirmPage";

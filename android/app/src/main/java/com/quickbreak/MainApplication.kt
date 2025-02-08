@@ -38,9 +38,7 @@ class MainApplication : Application(), ReactApplication {
               add(BatteryOptimizationPackage());
               add(RNAndroidInstalledAppsPackage());
               add(AppUsagePackage());
-              add(FloatingBubblePackage());
               add(ForegroundAppDetectorPackage());
-              add(OverlayPackage());
               add(AppBlockerPackage());
             }
 

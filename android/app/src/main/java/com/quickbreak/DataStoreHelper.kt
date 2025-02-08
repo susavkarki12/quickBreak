@@ -12,22 +12,16 @@ import kotlinx.coroutines.runBlocking
 val Context.dataStore by preferencesDataStore(name = "app_blocker_prefs")
 
 object DataStoreHelper {
-    private val BLOCKED_APP_KEY = stringPreferencesKey("BLOCKED_APP")
+    private val BLOCKED_APPS_KEY = "blocked_apps"
 
-    // Save blocked app package name
-    fun setBlockedApp(context: Context, packageName: String) {
-        runBlocking {
-            context.dataStore.edit { preferences ->
-                preferences[BLOCKED_APP_KEY] = packageName
-            }
-        }
+    fun getBlockedApps(context: Context): List<String> {
+        val prefs = context.getSharedPreferences("quickbreak_prefs", Context.MODE_PRIVATE)
+        return prefs.getStringSet(BLOCKED_APPS_KEY, emptySet())?.toList() ?: emptyList()
     }
 
-    // Retrieve blocked app package name
-    fun getBlockedApp(context: Context): String {
-        return runBlocking {
-            val preferences = context.dataStore.data.first()
-            preferences[BLOCKED_APP_KEY] ?: ""
-        }
+    fun setBlockedApps(context: Context, blockedApps: List<String>) {
+        val prefs = context.getSharedPreferences("quickbreak_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putStringSet(BLOCKED_APPS_KEY, blockedApps.toSet()).apply()
     }
 }
+

@@ -6,17 +6,23 @@ import overlay from '../constants/permissions';
 import checkAndOpenBatterySettings from '../Service/BatteryOptimizationService';
 import { checkPermission, fetchData } from '../Service/UsageTime';
 import getUsageData from '../Service/UsageStatsService';
+import { NativeModules, Alert, Linking } from 'react-native';
+
+const { UsageStatsModule } = NativeModules;
+
 
 const MainPermission = ({ navigation }) => {
     const [usageData, setUsageData] = useState([]); // State to store usage data
     useEffect(() => {
-        const getData = async () => {
-            await checkPermission(); // Ensure permission is granted
-            const data = await fetchData(); // Fetch foreground times
-            setUsageData(data); // Store data in state
+        const getUsageStats = async () => {
+            try {
+              const usageStats = await UsageStatsModule.getUsageStats();
+              console.log('Usage Stats:', usageStats);
+            } catch (error) {
+              console.error('Error fetching usage stats:', error);
+            }
         };
-
-        getData(); // Call function on component mount
+        getUsageStats()
     }, []);
 
     const nav = () => {
