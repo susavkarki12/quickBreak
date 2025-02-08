@@ -1,13 +1,6 @@
-import React, { useState, useEffect } from "react";
-
 import { NativeModules } from "react-native";
 
 const { UsageStatsModule, UsagePermissionModule } = NativeModules;
-
-// Function to convert milliseconds to seconds
-const convertMilliseconds = (ms) =>{
-  return Math.floor(ms / 1000);
-} 
 
 // Function to get app usage data
 const getUsageData = async () => {
@@ -20,21 +13,19 @@ const getUsageData = async () => {
     }
 
     const usageData = await UsageStatsModule.getUsageStats();
-    console.log(usageData)
-    // Convert data to a readable format
-    return Object.entries(usageData).map(([packageName, time]) => ({
+
+    // Convert object to array with id, packageName, and timeInForeground
+    const formattedData = Object.entries(usageData).map(([packageName, timeInForeground], index) => ({
+      id: index + 1, // Generate a unique ID starting from 1
       packageName,
-      usageTime: convertMilliseconds(time) // Convert to seconds
+      timeInForeground,
     }));
 
-    
-
+    return formattedData;
   } catch (error) {
     console.error("Error fetching usage stats:", error);
     return { error: error.message };
   }
 };
 
-const usagedata= getUsageData()
-export default getUsageData
-
+export default getUsageData;

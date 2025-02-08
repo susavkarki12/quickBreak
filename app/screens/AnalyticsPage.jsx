@@ -17,6 +17,29 @@ import {
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import { checkPermission, fetchData } from '../Service/UsageTime';
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import getUsageData from '../Service/UsageStatsService';
+
+const mergeAppUsageData = (apps, usageData) => {
+  return apps
+    .map((app) => {
+      const usage = usageData.find((data) => data.packageName === app.packageName);
+      
+      // If usage data is found, combine app data with usage data
+      if (usage) {
+        return {
+          appName: app.appName,
+          packageName: app.packageName,
+          icon: app.icon,
+          timeInForeground: usage.timeInForeground/60,
+        };
+      }
+      
+      // If no matching usage data found, return nothing (null or undefined)
+      return null;
+    })
+    // Filter out the null values from the map
+    .filter((mergedData) => mergedData !== null);
+};
 
 const AnalyticsPage = ({ navigation }) => {
   const [usageData, setUsageData] = useState([]); // State to store usage data
@@ -24,6 +47,16 @@ const AnalyticsPage = ({ navigation }) => {
   const [filteredApps, setFilteredApps] = useState([]); // Filtered list based on search
   const [selectedApps, setSelectedApps] = useState([]); // Selected apps
   const [searchText, setSearchText] = useState("");
+  const [mergedData, setMergedData] = useState([]);
+
+  useEffect(() => {
+    const fetchUsageData = async () => {
+      const data = await getUsageData();
+      setUsageData(data);
+    };
+
+    fetchUsageData();
+  }, []);
 
   useEffect(() => {
     const getStoredApps = async () => {
@@ -47,15 +80,13 @@ const AnalyticsPage = ({ navigation }) => {
     getStoredApps();
   }, []);
 
-  useEffect(() => {
-    const getData = async () => {
-      await checkPermission(); // Ensure permission is granted
-      const data = await fetchData(); // Fetch foreground times
-      setUsageData(data); // Store data in state
-    };
+  const sortedData = mergedData.sort((a, b) => b.timeInForeground - a.timeInForeground);
 
-    getData(); // Call function on component mount
-  }, []);
+  useEffect(() => {
+    const data = mergeAppUsageData(apps, usageData);
+    setMergedData(data);
+  }, [apps, usageData]);
+
   const navtodashboard = () => {
     navigation.navigate('DashBoard');
   };
@@ -74,9 +105,18 @@ const AnalyticsPage = ({ navigation }) => {
     { label: 'Calendar', percentage: 6, color: '#FFC0CB' },
     { label: 'Other', percentage: 10, color: '#A9A9A9' },
   ];
-  const getTime = (packageName) => {
-    const time = usageData.find((data) => data.packageName === packageName)
-    return time ? time.timeInForeground : "data not found"
+  
+
+  const formatTime = () => {
+    const minutes= calculateTotalTime()
+    if (minutes < 1) {
+      return `Less than minute`; // Keeps 2 decimal places for less than 1 minute
+    }
+  
+    const hours = Math.floor(minutes / 60);  // Get whole hours
+    const remainingMinutes = Math.round(minutes % 60);  // Get remaining minutes
+  
+    return `${hours} hr${hours !== 1 ? 's' : ''}, ${remainingMinutes} min${remainingMinutes !== 1 ? 's' : ''}`;
   }
 
   const renderItem = ({ item }) => (
@@ -90,7 +130,7 @@ const AnalyticsPage = ({ navigation }) => {
           <Text style={styles.name}>{item.appName}</Text>
         </View>
         <View style={styles.timeinfo}>
-          <Text style={styles.time}>{getTime(item.packageName)}</Text>
+          <Text style={styles.time}>{item.timeInForeground}</Text>
         </View>
       </View>
       <View style={styles.progressBar}>
@@ -115,6 +155,11 @@ const AnalyticsPage = ({ navigation }) => {
       setFilteredApps(filtered.sort((a, b) => a.appName.localeCompare(b.appName)));
     }
   };
+
+  const calculateTotalTime = () => {
+    return mergedData.reduce((total, item) => total + item.timeInForeground, 0);
+  };
+  console.log(calculateTotalTime())
   
   const radius = 80;
   const strokeWidth = wp('1.3%');
@@ -197,7 +242,7 @@ const AnalyticsPage = ({ navigation }) => {
             fontWeight="bold"
             fill="#333"
             textAnchor="middle">
-            3 hr 22 min
+            {formatTime()}
           </SvgText>
           <SvgText
             x={centerX}
@@ -241,8 +286,8 @@ const AnalyticsPage = ({ navigation }) => {
         </View>
         <View style={styles.statistics}>
           <FlatList
-            data={filteredApps}
-            keyExtractor={(item) => item.id}
+            data={sortedData}
+            keyExtractor={(item) => item.packageName}
             renderItem={renderItem}
             contentContainerStyle={styles.listContainer}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
