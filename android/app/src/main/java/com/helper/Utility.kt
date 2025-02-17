@@ -2,29 +2,47 @@ package com.helper
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
+import android.graphics.drawable.*
 import android.util.Base64
 import java.io.ByteArrayOutputStream
 
 object Utility {
 
-    // Converts Drawable to Base64 String
-    fun convert(drawable: Drawable): String {
-        return try {
-            convert(drawableToBitmap(drawable)) // Convert Drawable to Bitmap, then to Base64
-        } catch (e: Exception) {
-            e.printStackTrace() // Log the exception
-            ""
+    // Converts Drawable to Bitmap (Handles AdaptiveIconDrawable)
+    fun convertDrawableToBitmap(drawable: Drawable): Bitmap {
+        return when (drawable) {
+            is BitmapDrawable -> drawable.bitmap ?: createFallbackBitmap()
+            is AdaptiveIconDrawable -> getBitmapFromAdaptiveIcon(drawable)
+            else -> getBitmapFromDrawable(drawable)
         }
     }
 
-    // Converts Bitmap to Base64 String
-    fun convert(bitmap: Bitmap): String {
+    // Converts AdaptiveIconDrawable to Bitmap
+    private fun getBitmapFromAdaptiveIcon(drawable: AdaptiveIconDrawable): Bitmap {
+        val size = 200 // Higher resolution for better quality
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
+    }
+
+    // Converts Other Drawables to Bitmap
+    private fun getBitmapFromDrawable(drawable: Drawable): Bitmap {
+        val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 100
+        val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 100
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
+    }
+
+    // Converts Bitmap to Base64
+    fun convertBitmapToBase64(bitmap: Bitmap): String {
         return try {
             ByteArrayOutputStream().use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream) // Compress Bitmap to PNG format
-                // Encode the byte array into a Base64 string and return it
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
                 Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT)
             }
         } catch (e: Exception) {
@@ -33,27 +51,8 @@ object Utility {
         }
     }
 
-    // Converts Drawable to Bitmap
-    fun drawableToBitmap(drawable: Drawable): Bitmap {
-        var bitmap: Bitmap? = null
-
-        if (drawable is BitmapDrawable) {
-            val bitmapDrawable = drawable
-            bitmapDrawable.bitmap?.let {
-                return it // Return existing Bitmap
-            }
-        }
-
-        // Handle Drawable with 0 width or height by creating a minimal bitmap
-        bitmap = if (drawable.intrinsicWidth == 0 || drawable.intrinsicHeight == 0) {
-            Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888) // Single-color 1x1 pixel Bitmap
-        } else {
-            Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888) // Create Bitmap with appropriate size
-        }
-
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas) // Draw the Drawable onto the Bitmap
-        return bitmap
+    // Fallback: 1x1 transparent Bitmap
+    private fun createFallbackBitmap(): Bitmap {
+        return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
     }
 }

@@ -12,10 +12,10 @@ export default OnBoardingData = [
       type: "dynamic",
       question: "What is your primary usage goal?",
       options: [
-        "Reduce mobile usage.",
-        "Be more productive.",
-        "Option 3.",
-        "Option 4.",
+        "3 hours",
+        "2 hours",
+        "1 hour",
+        "I will set through settings",
       ],
     },
     {
@@ -23,10 +23,10 @@ export default OnBoardingData = [
       type: "dynamic",
       question: "When should we remind you?",
       options: [
-        "Remind me every 30mins.",
-        "Remind me every 20mins.",
-        "Remind me every 10mins.",
-        "Remind me every 5mins.",
+        "Remind me every 30mins",
+        "Remind me every 20mins",
+        "Remind me every 10mins",
+        "Remind me every 5mins",
       ],
     },
     {
@@ -34,10 +34,10 @@ export default OnBoardingData = [
       type: "dynamic",
       question: "How familiar are you with Time Blocking?",
       options: [
-        "Very Familiar.",
-        "Remind me every 30mins.",
-        "Remind me every 30mins.",
-        "Remind me every 30mins.",
+        "Very Familiar",
+        "Familiar",
+        "Not Familiar",
+        "Know More",
       ],
     },
     {

@@ -6,20 +6,20 @@ import {
     queryUsageStats,
     showUsageAccessSettings,
 } from '@brighthustle/react-native-usage-stats-manager';
+import moment from "moment";
 
 // Make fetchData async to use await
 const fetchData = async () => {
-    const startDate = new Date();
-    startDate.setUTCHours(0,0,0,0); // Set to midnight in UTC
-    startDate.setUTCDate(startDate.getUTCDate() - 1);
-    const endDate= new Date()
-    let currentDate = new Date();
-console.log("gf",currentDate);
+    const startDate1 = moment().startOf('day').format().slice(0, -6)+"Z";
+    console.log(startDate1)
+    const endDate1= moment().format().slice(0,-6)+"Z"
+    const endDate= new Date(endDate1)
+    const startDate= new Date(startDate1)
+    console.log(startDate)
 
     const startMilliseconds = startDate.getTime();
-    console.log(startMilliseconds)
+
     const endMilliseconds = endDate.getTime();
-    console.log(endMilliseconds)
     console.log("start")
 
     // Query usage stats between the start and end time

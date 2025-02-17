@@ -2,10 +2,11 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar } from 'reac
 import React from 'react'
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { LinearGradient } from "react-native-linear-gradient";
-
+import moment from 'moment';
 
 const PreAppSelection = ({ navigation }) => {
-
+    const midnightTime = moment().startOf('day').format().slice(0, -6);
+    console.log(midnightTime)
     const nav=()=>{
         navigation.navigate("AppList")
     }

@@ -13,7 +13,7 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import LinearGradient from "react-native-linear-gradient";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { RNAndroidInstalledApps } = NativeModules;
+const { RNAndroidInstalledApps, AppBlocker } = NativeModules;
 
 const AppList = ({ navigation }) => {
     const [apps, setApps] = useState([]);
@@ -49,15 +49,15 @@ const AppList = ({ navigation }) => {
         // Filter selected and non-selected apps
         const selectedApps = appList.filter((app) => selectedList.includes(app.packageName));
         const nonSelectedApps = appList.filter((app) => !selectedList.includes(app.packageName));
-    
+
         // Sort both selected and non-selected apps alphabetically by appName
         const sortedSelectedApps = selectedApps.sort((a, b) => a.appName.localeCompare(b.appName));
         const sortedNonSelectedApps = nonSelectedApps.sort((a, b) => a.appName.localeCompare(b.appName));
-    
+
         // Combine them so selected apps come first
         return [...sortedSelectedApps, ...sortedNonSelectedApps];
     };
-    
+
 
     // Handle search filtering
     const handleSearch = (text) => {
@@ -112,12 +112,67 @@ const AppList = ({ navigation }) => {
 
     const selectApps = async () => {
         try {
-            await AsyncStorage.setItem('selectedApps', JSON.stringify(selectedApps));
-            navigation.navigate("DashBoard");
+            const appsToBlock = selectedApps.length > 0 ? selectedApps : ["com.dummy.placeholder"];
+            retrieveFromStrorage()
+
+            // navigation.navigate("DashBoard");
+            navigation.navigate("DashBoard")
         } catch (error) {
             console.error("Error saving selected apps:", error);
         }
     };
+
+    const retrieveFromStrorage = async () => {
+        // Pass the array of apps to block
+        AppBlocker.setBlockedApps(selectedApps);
+        await AsyncStorage.setItem('selectedApps', JSON.stringify(selectedApps));
+
+        const usageGoal = await AsyncStorage.getItem('usageGoal')
+        const reminderInterval = await AsyncStorage.getItem('reminderInterval')
+        const familiarity = await AsyncStorage.getItem('familiarity')
+        const creationDate = await AsyncStorage.getItem('creationDate')
+        const id = await AsyncStorage.getItem('unique_id')
+
+        console.log("usage", usageGoal, reminderInterval, familiarity, creationDate, id)
+        sendToBackend(usageGoal, reminderInterval, familiarity, creationDate, id);
+
+    }
+
+    const sendToBackend = async (usageGoal, reminderInterval, familiarity, creationDate, id) => {
+        const data = {
+            usageGoal: usageGoal || "Reduce screen time", // Fallback default value
+            reminderInterval: reminderInterval || "30 minutes",
+            familiarity: familiarity ? [familiarity] : ["Familiar"], // Ensure it's an array
+            permissions: [
+                {
+                  "usage_stats": true, 
+                 " overlay": false, 
+                  "auto_start": true
+                }
+              ],
+            distractingApps: selectedApps.length > 0 ? selectedApps : [" "],
+            creationDate: creationDate || new Date().toISOString(),
+            id: id || "user12345",
+        };
+
+        try {
+            const response = await fetch("http://192.168.100.52:3000/api/onboarding/add", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+           const result = await response.json();
+            console.log("Response from backend:", result);
+        } catch (error) {
+            console.error("Error sending onboarding data:", error);
+        }
+    }
 
     const memoizedFilteredApps = useMemo(() => filteredApps, [filteredApps]); // Memoizing the filtered list
 

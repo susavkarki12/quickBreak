@@ -9,6 +9,10 @@ import android.provider.Settings
 import com.facebook.react.bridge.*
 import java.util.*
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.ZoneOffset
+
 class UsageStatsModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
     override fun getName(): String {
@@ -16,43 +20,23 @@ class UsageStatsModule(reactContext: ReactApplicationContext) : ReactContextBase
     }
 
     @ReactMethod
-    fun checkUsagePermission(promise: Promise) {
-        val appOps = reactApplicationContext.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appOps.unsafeCheckOpNoThrow(
-                "android:get_usage_stats",
-                android.os.Process.myUid(),
-                reactApplicationContext.packageName
-            )
-        } else {
-            appOps.checkOpNoThrow(
-                "android:get_usage_stats",
-                android.os.Process.myUid(),
-                reactApplicationContext.packageName
-            )
-        }
-        val granted = mode == AppOpsManager.MODE_ALLOWED
-        promise.resolve(granted)
-    }
-
-    @ReactMethod
-    fun getUsageStats(promise: Promise) {
+    fun getUsageStats(startTime: String, currentTime: String, promise: Promise) {
         try {
+            // Define the format to match the incoming date string
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+
+            // Parse the start and current time strings to LocalDateTime
+            val startLocalDateTime = LocalDateTime.parse(startTime, formatter)
+            val currentLocalDateTime = LocalDateTime.parse(currentTime, formatter)
+
+            // Convert LocalDateTime to timestamp (milliseconds)
+            val startMillis = startLocalDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+            val currentMillis = currentLocalDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+
+            // Now you can query usage stats with the millisecond timestamps
             val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-            val currentTime = System.currentTimeMillis()
-
-            // Set start time to midnight (00:00:00) of today
-            val startDate = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)  // Set hour to midnight
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            val startTime = startDate.timeInMillis
-
-            // Query the usage stats from midnight to now
             val usageStatsList: List<UsageStats> = usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY, startTime, currentTime
+                UsageStatsManager.INTERVAL_DAILY, startMillis, currentMillis
             )
 
             if (usageStatsList.isEmpty()) {

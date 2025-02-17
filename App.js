@@ -59,7 +59,8 @@ const App = () => {
         const appList = nonSystemApps.map((app) => ({
           appName: app.appName,
           packageName: app.packageName,
-          icon: app.icon
+          icon: app.icon,
+          color: app.color
         }));
         setApps(appList);
         setFilteredApps(appList);
@@ -106,7 +107,8 @@ const checkForegroundApp = async (selectedApps) => {
       setTimeout(() => {
         Alert.alert('Warning', 'Please close the third-party app manually.');
       }, 0);
-      
+      const appsToBlock = selectedApps.length > 0 ? selectedApps : ["com.dummy.placeholder"];
+
       // Pass the array of apps to block
       AppBlocker.setBlockedApps(selectedApps);
       console.log("Blocked foreground apps.");

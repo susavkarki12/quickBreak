@@ -1,3 +1,4 @@
+import moment from "moment";
 import { NativeModules } from "react-native";
 
 const { UsageStatsModule, UsagePermissionModule } = NativeModules;
@@ -12,7 +13,10 @@ const getUsageData = async () => {
       return { error: "Permission not granted" };
     }
 
-    const usageData = await UsageStatsModule.getUsageStats();
+    const midnightTime = moment().startOf('day').format().slice(0, -6);
+    const currnetTime= moment().format().slice(0,-6)
+
+    const usageData = await UsageStatsModule.getUsageStats(midnightTime, currnetTime);
 
     // Convert object to array with id, packageName, and timeInForeground
     const formattedData = Object.entries(usageData).map(([packageName, timeInForeground], index) => ({

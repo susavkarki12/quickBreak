@@ -6,6 +6,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.Promise
 import com.facebook.react.module.annotations.ReactModule
+import android.content.*
 
 @ReactModule(name = "AppBlocker")
 class AppBlockerModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
@@ -18,24 +19,31 @@ class AppBlockerModule(reactContext: ReactApplicationContext) : ReactContextBase
     fun setBlockedApps(packageNames: ReadableArray, promise: Promise) {
         try {
             val context = reactApplicationContext
-
-            // Convert ReadableArray to List<String>
             val blockedApps = mutableListOf<String>()
+    
             for (i in 0 until packageNames.size()) {
-                val packageName = packageNames.getString(i)
-                if (packageName != null) {
-                    blockedApps.add(packageName)
-                } else {
-                    promise.reject("INVALID_PACKAGE_NAME", "Package name at index $i is null")
-                    return
-                }
+                blockedApps.add(packageNames.getString(i))
             }
-
-            // Store the list of blocked apps in DataStore
+    
+            if (blockedApps.isEmpty()) {
+                DataStoreHelper.clearBlockedApps(context)
+                restartAccessibilityService(context) // Force restart to clear old blocks
+                promise.resolve(true)
+                return
+            }
+    
             DataStoreHelper.setBlockedApps(context, blockedApps)
-            promise.resolve(true) // Indicate success
+            restartAccessibilityService(context) // Restart to update list
+            promise.resolve(true)
+    
         } catch (e: Exception) {
             promise.reject("SET_BLOCKED_APPS_ERROR", "Failed to set blocked apps: ${e.message}")
         }
+    }
+
+    fun restartAccessibilityService(context: Context) {
+        val intent = Intent(context, MyAccessibilityService::class.java)
+        context.stopService(intent) // Stop service
+        context.startService(intent) // Restart service
     }
 }

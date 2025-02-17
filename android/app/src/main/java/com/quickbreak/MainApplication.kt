@@ -40,6 +40,7 @@ class MainApplication : Application(), ReactApplication {
               add(AppUsagePackage());
               add(ForegroundAppDetectorPackage());
               add(AppBlockerPackage());
+              add(WeeklyStatsPackage());
             }
 
         override fun getJSMainModuleName(): String = "index"

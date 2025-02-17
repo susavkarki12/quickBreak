@@ -15,10 +15,7 @@ import com.helper.Utility
 import java.io.File
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.util.Base64
-import java.io.ByteArrayOutputStream
+import androidx.palette.graphics.Palette
 
 class RNAndroidInstalledAppsModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -45,50 +42,43 @@ class RNAndroidInstalledAppsModule(reactContext: ReactApplicationContext) :
             promise.reject(ex)
         }
     }
+
     @ReactMethod
     fun getNonSystemApps(promise: Promise) {
         try {
             val pm = reactContext.packageManager
-            val pList = pm.getInstalledPackages(
-                PackageManager.GET_META_DATA or PackageManager.MATCH_UNINSTALLED_PACKAGES
-            )
+            val pList = pm.getInstalledPackages(PackageManager.GET_META_DATA)
             val list = Arguments.createArray()
-    
+
             for (packageInfo in pList) {
-                val appInfo = packageInfo.applicationInfo
-                if (appInfo != null &&
-                    (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 &&
-                    (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                ) {
-                    val appName = pm.getApplicationLabel(appInfo).toString() // App name
-                    val packageName = packageInfo.packageName              // Package name
-    
-                    // Fetch the app icon and convert it to Base64
+                val appInfo = packageInfo.applicationInfo ?: continue
+
+                if ((appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 &&
+                    (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0) {
+                    val appName = pm.getApplicationLabel(appInfo).toString()
+                    val packageName = packageInfo.packageName
                     val iconDrawable = appInfo.loadIcon(pm)
-                    val bitmap = (iconDrawable as BitmapDrawable).bitmap
-                    val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-                    val iconBase64 = Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT)
-    
-                    // Create a map to hold app details
+                    val bitmap = Utility.convertDrawableToBitmap(iconDrawable)
+                    val iconBase64 = Utility.convertBitmapToBase64(bitmap)
+                    val dominantColor = extractDominantColor(bitmap)
+
                     val appDetails = Arguments.createMap().apply {
                         putString("appName", appName)
                         putString("packageName", packageName)
-                        putString("icon", iconBase64) // Add icon Base64 string
+                        putString("icon", iconBase64)
+                        putString("color", dominantColor)
                     }
-    
-                    list.pushMap(appDetails) // Add map to the array
+
+                    list.pushMap(appDetails)
                 }
             }
-    
+
             promise.resolve(list)
         } catch (ex: Exception) {
             promise.reject(ex)
         }
     }
-    
-    
-       
+
     @ReactMethod
     fun getSystemApps(promise: Promise) {
         try {
@@ -97,31 +87,42 @@ class RNAndroidInstalledAppsModule(reactContext: ReactApplicationContext) :
             val list: WritableArray = Arguments.createArray()
 
             for (packageInfo in pList) {
-                if (packageInfo.applicationInfo?.flags?.and(ApplicationInfo.FLAG_SYSTEM) != 0) {
-                    val appInfo: WritableMap = Arguments.createMap()
+                val appInfo = packageInfo.applicationInfo ?: continue
 
-                    appInfo.putString("packageName", packageInfo.packageName)
-                    appInfo.putString("versionName", packageInfo.versionName)
-                    appInfo.putDouble("versionCode", packageInfo.longVersionCode.toDouble())
-                    appInfo.putDouble("firstInstallTime", packageInfo.firstInstallTime.toDouble())
-                    appInfo.putDouble("lastUpdateTime", packageInfo.lastUpdateTime.toDouble())
-                    appInfo.putString("appName", packageInfo.applicationInfo?.loadLabel(pm)?.toString()?.trim() ?: "")
+                if (appInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0) {
+                    val appDetails: WritableMap = Arguments.createMap()
 
-                    val icon: Drawable? = packageInfo.applicationInfo?.let { pm.getApplicationIcon(it) }
-                    appInfo.putString("icon", icon?.let { Utility.convert(it) } ?: "")
+                    appDetails.putString("packageName", packageInfo.packageName)
+                    appDetails.putString("versionName", packageInfo.versionName)
+                    appDetails.putDouble("versionCode", packageInfo.longVersionCode.toDouble())
+                    appDetails.putDouble("firstInstallTime", packageInfo.firstInstallTime.toDouble())
+                    appDetails.putDouble("lastUpdateTime", packageInfo.lastUpdateTime.toDouble())
+                    appDetails.putString("appName", pm.getApplicationLabel(appInfo).toString().trim())
 
-                    val apkDir: String = packageInfo.applicationInfo?.publicSourceDir ?: ""
-                    appInfo.putString("apkDir", apkDir)
+                    val iconDrawable: Drawable? = appInfo.loadIcon(pm)
+                    val bitmap = iconDrawable?.let { Utility.convertDrawableToBitmap(it) }
+                    val iconBase64 = bitmap?.let { Utility.convertBitmapToBase64(it) } ?: ""
+
+                    appDetails.putString("icon", iconBase64)
+
+                    val apkDir: String = appInfo.publicSourceDir ?: ""
+                    appDetails.putString("apkDir", apkDir)
 
                     val size = apkDir.takeIf { it.isNotEmpty() }?.let { File(it).length().toDouble() } ?: 0.0
-                    appInfo.putDouble("size", size)
+                    appDetails.putDouble("size", size)
 
-                    list.pushMap(appInfo)
+                    list.pushMap(appDetails)
                 }
             }
             promise.resolve(list)
         } catch (ex: Exception) {
             promise.reject(ex)
         }
+    }
+
+    private fun extractDominantColor(bitmap: Bitmap): String {
+        val palette = Palette.from(bitmap).generate()
+        val dominantColor = palette.getDominantColor(0xA9A9A9) // Default gray
+        return String.format("#%06X", 0xFFFFFF and dominantColor) // Convert to hex
     }
 }

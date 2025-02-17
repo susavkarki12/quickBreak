@@ -7,6 +7,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
+import android.util.Log
 
 class MyAccessibilityService : AccessibilityService() {
 
@@ -35,10 +36,20 @@ class MyAccessibilityService : AccessibilityService() {
 
     private fun checkAndBlockApp() {
         val blockedApps = DataStoreHelper.getBlockedApps(applicationContext)
+    
+        Log.d("AppBlocker", "Blocked apps list: $blockedApps") // Debugging: Check real-time data
+    
+        if (blockedApps.isEmpty()) {
+            Log.d("AppBlocker", "Blocked apps list is empty, skipping blocking.")
+            return
+        }
+    
         val currentApp = getForegroundApp()
-
+        Log.d("AppBlocker", "Current foreground app: $currentApp")
+    
         if (blockedApps.contains(currentApp)) {
-            performGlobalAction(GLOBAL_ACTION_HOME) // Send to Home screen instead of Back
+            Log.d("AppBlocker", "Blocking app: $currentApp")
+            performGlobalAction(GLOBAL_ACTION_HOME)
         }
     }
 

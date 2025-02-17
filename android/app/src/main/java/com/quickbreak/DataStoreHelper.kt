@@ -23,5 +23,11 @@ object DataStoreHelper {
         val prefs = context.getSharedPreferences("quickbreak_prefs", Context.MODE_PRIVATE)
         prefs.edit().putStringSet(BLOCKED_APPS_KEY, blockedApps.toSet()).apply()
     }
+
+    fun clearBlockedApps(context: Context) {
+        val prefs = context.getSharedPreferences("quickbreak_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putStringSet(BLOCKED_APPS_KEY, emptySet()).apply() // Store an empty set explicitly
+    }
+
 }
 

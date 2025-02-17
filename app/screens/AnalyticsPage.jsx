@@ -23,17 +23,18 @@ const mergeAppUsageData = (apps, usageData) => {
   return apps
     .map((app) => {
       const usage = usageData.find((data) => data.packageName === app.packageName);
-      
+
       // If usage data is found, combine app data with usage data
       if (usage) {
         return {
           appName: app.appName,
           packageName: app.packageName,
           icon: app.icon,
-          timeInForeground: usage.timeInForeground/60,
+          color: app.color,
+          timeInForeground: usage.timeInForeground / 60,
         };
       }
-      
+
       // If no matching usage data found, return nothing (null or undefined)
       return null;
     })
@@ -48,6 +49,8 @@ const AnalyticsPage = ({ navigation }) => {
   const [selectedApps, setSelectedApps] = useState([]); // Selected apps
   const [searchText, setSearchText] = useState("");
   const [mergedData, setMergedData] = useState([]);
+  const [topApps, setTopApps] = useState([]);
+const [sortedData, setSortedData] = useState([]);
 
   useEffect(() => {
     const fetchUsageData = async () => {
@@ -62,13 +65,13 @@ const AnalyticsPage = ({ navigation }) => {
     const getStoredApps = async () => {
       try {
         const storedApps = await AsyncStorage.getItem('apps');
-  
+
         if (storedApps) {
           const parsedApps = JSON.parse(storedApps);
-  
+
           // Sort the apps alphabetically by appName
           const sortedApps = parsedApps.sort((a, b) => a.appName.localeCompare(b.appName));
-  
+
           setApps(sortedApps); // Update the full app list
           setFilteredApps(sortedApps); // Also update the filtered list
         }
@@ -76,16 +79,47 @@ const AnalyticsPage = ({ navigation }) => {
         console.error("Error retrieving stored apps:", error);
       }
     };
-  
+
     getStoredApps();
   }, []);
 
-  const sortedData = mergedData.sort((a, b) => b.timeInForeground - a.timeInForeground);
 
+  console.log("merged", mergedData)
   useEffect(() => {
     const data = mergeAppUsageData(apps, usageData);
     setMergedData(data);
   }, [apps, usageData]);
+
+
+  useEffect(() => {
+    const data = mergeAppUsageData(apps, usageData);
+    setMergedData(data);
+
+    // Sort the apps by timeInForeground in descending order
+    const sortedApps = data.sort((a, b) => b.timeInForeground - a.timeInForeground);
+
+    // Select the top 5 apps
+    const topFive = sortedApps.slice(0, 5).map((item) => ({
+      appName: item.appName,
+      timeInForeground: item.timeInForeground,
+      color: item.color
+    }));
+
+    // Calculate the "Others" category by summing the remaining apps' time
+    const othersTime = sortedApps.slice(5).reduce((sum, app) => sum + app.timeInForeground, 0);
+
+    // Add the "Others" category
+    const others = othersTime > 0 ? { appName: "Others", timeInForeground: othersTime, color: "grey" } : null;
+
+    // Update the state with the top 5 apps and "Others"
+    const topAppsData = others ? [...topFive, others] : topFive;
+    setTopApps(topAppsData);
+  }, [apps, usageData]);
+
+  useEffect(() => {
+    const sorted = [...mergedData].sort((a, b) => b.timeInForeground - a.timeInForeground);
+    setSortedData(sorted);
+  }, [mergedData]);
 
   const navtodashboard = () => {
     navigation.navigate('DashBoard');
@@ -96,29 +130,34 @@ const AnalyticsPage = ({ navigation }) => {
   const navtovip = () => {
     navigation.navigate("Vip")
   }
-  const data = [
-    { label: 'YouTube', percentage: 25, color: '#4285F4' },
-    { label: 'Chrome', percentage: 20, color: '#DB4437' },
-    { label: 'Gmail', percentage: 15, color: '#FFFF00' },
-    { label: 'Messages', percentage: 12, color: '#00FF00' },
-    { label: 'Drive', percentage: 12, color: '#FFA500' },
-    { label: 'Calendar', percentage: 6, color: '#FFC0CB' },
-    { label: 'Other', percentage: 10, color: '#A9A9A9' },
-  ];
-  
 
   const formatTime = () => {
-    const minutes= calculateTotalTime()
+    const minutes = calculateTotalTime()
     if (minutes < 1) {
       return `Less than minute`; // Keeps 2 decimal places for less than 1 minute
     }
-  
+
     const hours = Math.floor(minutes / 60);  // Get whole hours
     const remainingMinutes = Math.round(minutes % 60);  // Get remaining minutes
-  
+
     return `${hours} hr${hours !== 1 ? 's' : ''}, ${remainingMinutes} min${remainingMinutes !== 1 ? 's' : ''}`;
   }
+  const listTime = (minutes) => {
+    if (minutes < 1) {
+      return `Less than minute`;
+    }
 
+    const hours = Math.floor(minutes / 60);  // Get whole hours
+    const remainingMinutes = Math.round(minutes % 60);  // Get remaining minutes
+
+    // If hours is greater than zero, include it in the format
+    if (hours > 0) {
+      return `${hours} hr${hours !== 1 ? 's' : ''}, ${remainingMinutes} min${remainingMinutes !== 1 ? 's' : ''}`;
+    } else {
+      return `${remainingMinutes} min${remainingMinutes !== 1 ? 's' : ''}`;
+    }
+  };
+  console.log(usageData)
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
       <View style={styles.row}>
@@ -130,14 +169,14 @@ const AnalyticsPage = ({ navigation }) => {
           <Text style={styles.name}>{item.appName}</Text>
         </View>
         <View style={styles.timeinfo}>
-          <Text style={styles.time}>{item.timeInForeground}</Text>
+          <Text style={styles.time}>{listTime(item.timeInForeground)}</Text>
         </View>
       </View>
       <View style={styles.progressBar}>
         <View
           style={[
             styles.progressFill,
-            { width: `${item.progress * 100}%`, backgroundColor: item.color },
+            { width: `${item.timeInForeground * 100 / calculateTotalTime()}%`, backgroundColor: item.color },
           ]}
         />
       </View>
@@ -147,12 +186,12 @@ const AnalyticsPage = ({ navigation }) => {
   const handleSearch = (text) => {
     setSearchText(text);
     if (text.trim() === "") {
-      setFilteredApps(apps);
+      setSortedData(apps);
     } else {
       const filtered = apps.filter((app) =>
         app.appName.toLowerCase().includes(text.toLowerCase())
       );
-      setFilteredApps(filtered.sort((a, b) => a.appName.localeCompare(b.appName)));
+      setSortedData(filtered.sort((a, b) => a.appName.localeCompare(b.appName)));
     }
   };
 
@@ -160,7 +199,7 @@ const AnalyticsPage = ({ navigation }) => {
     return mergedData.reduce((total, item) => total + item.timeInForeground, 0);
   };
   console.log(calculateTotalTime())
-  
+
   const radius = 80;
   const strokeWidth = wp('1.3%');
   const centerX = 150;
@@ -184,16 +223,16 @@ const AnalyticsPage = ({ navigation }) => {
       <View style={styles.chartContainer}>
         <Svg style={styles.circle} height="300" width="300">
           <G rotation="-90" origin={`${centerX}, ${centerY}`}>
-            {data.map((item, index) => {
-              const arcLength = (item.percentage / 100) * circleCircumference;
+            {topApps.map((item, index) => {
+              const arcLength = ((item.timeInForeground * 100 / calculateTotalTime()) / 100) * circleCircumference;
               const gapSize = 3;
               const dashArray = [
                 arcLength - gapSize,
                 circleCircumference - arcLength + gapSize,
               ];
               const startOffset = (startAngle / 360) * circleCircumference;
-              const labelAngle = startAngle + (item.percentage / 2) * 3.6;
-              startAngle += (item.percentage / 100) * 360;
+              const labelAngle = startAngle + ((item.timeInForeground * 100 / calculateTotalTime()) / 2) * 3.6;
+              startAngle += ((item.timeInForeground * 100 / calculateTotalTime()) / 100) * 360;
 
               const labelX =
                 centerX +
@@ -228,7 +267,7 @@ const AnalyticsPage = ({ navigation }) => {
                     textAnchor="middle"
                     transform={`rotate(${labelRotation} ${labelX} ${labelY})`}
                   >
-                    {item.label}
+                    {item.appName}
                   </SvgText>
                 </React.Fragment>
               );

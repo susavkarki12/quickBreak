@@ -26,24 +26,16 @@ import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import getWeeklyUsage from '../Service/WeeklyStat';
 
 const rawData = [20, 45, 28, 80, 99, 43, 34];
-const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const data = rawData.map((item, index) => ({
-  value: item,
-  label: labels[index],
-}));
-const apps = [
-  { id: '1', name: 'Facebook', icon: 'facebook' },
-  { id: '2', name: 'YouTube', icon: 'youtube' },
-  { id: '3', name: 'Instagram', icon: 'instagram' },
-  { id: '4', name: 'Instagram', icon: 'instagram' },
-];
+
 
 const DashBoard = ({ navigation }) => {
   const [app, setApps] = useState([])
   const [selectedApps, setSelectedApps] = useState([]);
+  const [data, setWeeklyData] = useState([]);
 
   useEffect(() => {
     const getStoredData = async () => {
@@ -76,6 +68,34 @@ const DashBoard = ({ navigation }) => {
     getStoredData();
   }, []);
 
+  useEffect(() => {
+    const fetchWeeklyData = async () => {
+      const data = await getWeeklyUsage();
+      setWeeklyData(data);
+    };
+
+    fetchWeeklyData();
+  }, []);
+  useEffect(() => {
+    getOnboardingEntries()
+  }, []);
+  const getOnboardingEntries = async () => {
+    try {
+      // Replace with your backend's IP and port
+      const response = await fetch("http://192.168.100.52:3000/api/onboarding/");  // Adjust URL based on your setup
+
+      // Check if the response is OK (status code 200)
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Parse the JSON response
+      const data = await response.json();
+      console.log("Fetched Onboarding Entries:", data);
+    } catch (error) {
+      console.error("Error fetching onboarding data:", error);
+    }
+  };
 
   const navToSeeMore = () => {
     navigation.navigate('AnalyticsPage');
@@ -94,13 +114,13 @@ const DashBoard = ({ navigation }) => {
     navigation.navigate('AppList');
   };
 
-  const getIcon=(packageName)=>{
-    const icon= app.find((item)=> item.packageName===packageName)
-    return icon? icon.icon : "E"
+  const getIcon = (packageName) => {
+    const icon = app.find((item) => item.packageName === packageName)
+    return icon ? icon.icon : "E"
   }
-  const getAppName=(packageName)=>{
-    const application= app.find((item)=> item.packageName===packageName)
-    return application? application.appName : packageName
+  const getAppName = (packageName) => {
+    const application = app.find((item) => item.packageName === packageName)
+    return application ? application.appName : packageName
   }
 
   return (
@@ -246,111 +266,111 @@ const DashBoard = ({ navigation }) => {
             Sort by <Text style={styles.sortHighlight}>Blocked</Text>
           </Text>
         </View>
-        <View style={{height: hp("25%")}}>
-        <FlatList
-          data={selectedApps}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.appItem}>
-              <Image
-                source={{ uri: `data:image/png;base64,${getIcon(item.packageName)}` }}
-                style={styles.appIcon}
-              />
-              <Text style={styles.appName}>{getAppName(item.packageName)}</Text>
-              <Text style={styles.blockedText}>Blocked</Text>
-            </View>
-          )}
-        />
+        <View style={{ height: hp("25%") }}>
+          <FlatList
+            data={selectedApps}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.appItem}>
+                <Image
+                  source={{ uri: `data:image/png;base64,${getIcon(item.packageName)}` }}
+                  style={styles.appIcon}
+                />
+                <Text style={styles.appName}>{getAppName(item.packageName)}</Text>
+                <Text style={styles.blockedText}>Blocked</Text>
+              </View>
+            )}
+          />
         </View>
       </View>
-      <View style={{paddingTop: hp('3%')}}>
-      <LinearGradient
-        colors={['#ff3131', '#ff914d']}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 1, y: 0 }}
-        style={{
-          //width: wp('93%'),
-          width: wp('100%'),
-          paddingHorizontal: wp('5%'),
-          flexDirection: 'row',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          paddingVertical: hp('0.01%'),
-        }}>
-        <Ionicons name="compass" size={wp('12%')} color="white" />
-        <Text
+      <View style={{ paddingTop: hp('3%') }}>
+        <LinearGradient
+          colors={['#ff3131', '#ff914d']}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 0 }}
           style={{
-            fontFamily: 'TTHoves',
-            color: 'white',
-            fontSize: hp('2%'),
-            marginVertical: hp('1.5%'),
-            marginHorizontal: wp('2%'),
+            //width: wp('93%'),
+            width: wp('100%'),
+            paddingHorizontal: wp('5%'),
+            flexDirection: 'row',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingVertical: hp('0.01%'),
           }}>
-          DashBoard
-        </Text>
-        <View
-          style={{
-            width: wp('0.3%'),
-
-            backgroundColor: 'white',
-
-            marginHorizontal: wp('5%'),
-          }}
-        />
-        <TouchableOpacity onPress={navToSettings}>
+          <Ionicons name="compass" size={wp('12%')} color="white" />
+          <Text
+            style={{
+              fontFamily: 'TTHoves',
+              color: 'white',
+              fontSize: hp('2%'),
+              marginVertical: hp('1.5%'),
+              marginHorizontal: wp('2%'),
+            }}>
+            DashBoard
+          </Text>
           <View
-            style={[
-              styles.footerLogo,
-              {
-                marginLeft: wp('2%'),
-              },
-            ]}>
-            <Fontisto
-              style={{
-                marginLeft: wp('1.85%'),
-                marginTop: hp('0.7%'),
-              }}
-              name="player-settings"
-              size={wp('7%')}
-              color="white"
-            />
-          </View>
-        </TouchableOpacity>
+            style={{
+              width: wp('0.3%'),
 
-        <TouchableOpacity onPress={navtoanalytics}>
-          <View
-            style={[
-              styles.footerLogo,
-              {
-                marginHorizontal: wp('4%'),
-              },
-            ]}>
-            <Image
-              source={require('./icons/statistics.png')} // Replace with your image path
-              style={{
-                width: wp('10%'),
-                height: wp('8%'),
-                alignContent: 'center',
-              }}
-              resizeMode="contain"
-            />
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={navtovip}>
-          <View style={[styles.footerLogo]} source={require('./icons/4.png')}>
-            <Ionicons
-              style={{
-                marginLeft: wp('1.7%'),
-                marginTop: hp('0.8%'),
-              }}
-              name="person"
-              size={wp('7%')}
-              color="white"
-            />
-          </View>
-        </TouchableOpacity>
-      </LinearGradient>
+              backgroundColor: 'white',
+
+              marginHorizontal: wp('5%'),
+            }}
+          />
+          <TouchableOpacity onPress={navToSettings}>
+            <View
+              style={[
+                styles.footerLogo,
+                {
+                  marginLeft: wp('2%'),
+                },
+              ]}>
+              <Fontisto
+                style={{
+                  marginLeft: wp('1.85%'),
+                  marginTop: hp('0.7%'),
+                }}
+                name="player-settings"
+                size={wp('7%')}
+                color="white"
+              />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={navtoanalytics}>
+            <View
+              style={[
+                styles.footerLogo,
+                {
+                  marginHorizontal: wp('4%'),
+                },
+              ]}>
+              <Image
+                source={require('./icons/statistics.png')} // Replace with your image path
+                style={{
+                  width: wp('10%'),
+                  height: wp('8%'),
+                  alignContent: 'center',
+                }}
+                resizeMode="contain"
+              />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={navtovip}>
+            <View style={[styles.footerLogo]} source={require('./icons/4.png')}>
+              <Ionicons
+                style={{
+                  marginLeft: wp('1.7%'),
+                  marginTop: hp('0.8%'),
+                }}
+                name="person"
+                size={wp('7%')}
+                color="white"
+              />
+            </View>
+          </TouchableOpacity>
+        </LinearGradient>
       </View>
     </SafeAreaView>
   );
@@ -405,7 +425,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
   },
   appIcon: { marginRight: wp('4%') },
-  appName: {paddingLeft:wp('2%'), flex: 1, fontSize: wp('4.5%') },
+  appName: { paddingLeft: wp('2%'), flex: 1, fontSize: wp('4.5%') },
   blockedText: { color: 'red', fontWeight: 'bold' },
   parent: {
     display: 'flex',
