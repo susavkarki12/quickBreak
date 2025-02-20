@@ -96,42 +96,44 @@ console.log(uniqueId)
 
   return (
 
-    <SafeAreaView style={{ ...styles.container, backgroundColor: (currentIndex === 0 || currentIndex === 4) ? "#1F7B55" : "white" }}>
-      <View style={{ backgroundColor: "#1F7B55", flexL: 1 }}>
-        <FlatList
-          ref={flatListRef}
-          data={OnBoardingData}
-          renderItem={({ item }) => <OnBoardingRenderItem item={item} />}
-          horizontal
-          pagingEnabled
-          bounces={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={32}
-          showsHorizontalScrollIndicator={false}
-        />
-      </View>
-      <View style={{ backgroundColor: (currentIndex === 0 || currentIndex === 4) ? "#1F7B55" : "white" }}>
-        <Pagination
-          currentIndex={currentIndex}
-          total={OnBoardingData.length}
-        />
+    <SafeAreaView style={styles.container}>
+        <View >
+          <FlatList
+            ref={flatListRef}
+            data={OnBoardingData}
+            renderItem={({ item }) => <OnBoardingRenderItem item={item} />}
+            horizontal
+            pagingEnabled
+            bounces={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={32}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+        
+        <View >
+          <Pagination
+            currentIndex={currentIndex}
+            total={OnBoardingData.length}
+          />
 
 
-        <TouchableOpacity onPress={handleNext}>
-          <LinearGradient
-            colors={["#ff3131", "#ff914d"]}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.nextButton}
-          >
-            <Text style={styles.nextButtonText}>
-              {currentIndex === OnBoardingData.length - 1 ? "All Set" : "Next"}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-
+          <TouchableOpacity onPress={handleNext}>
+            <LinearGradient
+              colors={["#ff3131", "#ff914d"]}
+              start={{ x: 0, y: 1 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.nextButton}
+            >
+              <Text style={styles.nextButtonText}>
+                {currentIndex === OnBoardingData.length - 1 ? "All Set" : "Next"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity> 
+        </View>
+        
+      </SafeAreaView>
+    
   );
 };
 
@@ -140,17 +142,18 @@ export default OnBoardingScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "space-between",
-
+    justifyContent: "flex-end",
+   height: hp("100%"),
+   backgroundColor:"#1F7B55"
   },
 
   nextButton: {
 
     width: "85%",
     alignSelf: "center",
-    marginBottom: "8%",
+    marginBottom: hp("2%"),
     alignItems: "center",
-    paddingVertical: "5%",
+    paddingVertical: hp("2%"),
     borderRadius: 30,
   },
   nextButtonText: {
@@ -158,4 +161,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "TTHoves",
   },
+ 
+  
+    
+  
 });

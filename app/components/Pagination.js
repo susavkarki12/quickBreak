@@ -3,6 +3,7 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 
 
 const Pagination = ({ currentIndex, total }) => {
+ 
   return (
     <View style={paginationStyles.container}>
       {Array.from({ length: total }).map((_, index) => (
@@ -10,7 +11,7 @@ const Pagination = ({ currentIndex, total }) => {
           key={index}
           style={[
             paginationStyles.dot,
-            currentIndex === index && paginationStyles.activeDot,
+          currentIndex === index && paginationStyles.activeDot  
           ]}
         />
       ))}
@@ -26,14 +27,14 @@ const paginationStyles = StyleSheet.create({
     
   },
   dot: {
-    height: 10,
+    height: 9,
     width: 10,
     borderRadius: 5,
     backgroundColor: "gray",
     margin: 8,
   },
   activeDot: {
-    width: 50,
+    width: 40,
     backgroundColor: "white",
   },
 });

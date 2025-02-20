@@ -420,6 +420,7 @@ const [sortedData, setSortedData] = useState([]);
 };
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: "#F2F8FC",
     flex: 1,
   },
 

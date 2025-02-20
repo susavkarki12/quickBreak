@@ -2,7 +2,7 @@ import React from 'react';
 import BackgroundFetch from 'react-native-background-fetch';
 
 const setupBackgroundFetch = async () => {
-  BackgroundFetch
+  
   await BackgroundFetch.configure(
     {
       minimumFetchInterval: 15, // Run every 15 minutes (minimum for iOS)

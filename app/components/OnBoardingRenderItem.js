@@ -38,9 +38,9 @@ const OnBoardingRenderItem = ({ item }) => {
     case "static":
       return (
         <View style={styles.staticContainer}>
-
-          <Image source={item.image} style={styles.image} />
-
+          
+            <Image source={item.image} style={styles.image} />
+          
           <View style={styles.textBox}>
             <Text style={styles.title1}>{item.title1}</Text>
             {item.title2 ? (
@@ -54,7 +54,7 @@ const OnBoardingRenderItem = ({ item }) => {
     case "dynamic":
       return (
         <View style={styles.dynamicContainer}>
-          <Text style={styles.appName}>APP_NAME</Text>
+          <Text style={styles.appName}>Quick Break</Text>
           <View style={styles.questionBox}>
             <Text style={styles.question}>{item.question}</Text>
             <View style={styles.optionsContainer}>
@@ -74,6 +74,8 @@ const OnBoardingRenderItem = ({ item }) => {
           </View>
         </View>
       );
+     
+
   }
 };
 
@@ -83,37 +85,41 @@ const styles = StyleSheet.create({
   staticContainer: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-end",
     padding: wp('5%'),
-    width: wp('100%')
+    width: wp('100%'),
+    height: hp('100%'),
+    backgroundColor: "#1F7B55", // Add background color
+   
   },
-
+  
   image: {
     width: wp('75%'),
     height: hp("53%"),
+    marginBottom: hp('3%'),
   },
   textBox: {
     textAlign: "center",
   },
   title1: {
-    color: "white",
-    fontSize: hp('5%'),
+    color: "#F0F8FF",
+    fontSize: hp('3.6%'),
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: hp('-1%'),
     fontFamily: "TTHoves",
   },
   title2: {
-    color: "white",
-    fontSize: hp('5%'),
+    color: "#F0F8FF",
+    fontSize: hp('3.6%'),
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: hp("0.5%"),
     fontFamily: "TTHoves",
   },
   description: {
-    color: "white",
-    fontSize: hp('2.3%'),
+    color: "#D0D0D0",
+    fontSize: hp('1.8%'),
     marginVertical: hp("1%"),
     textAlign: "center",
     fontFamily: "TTHoves",
@@ -121,42 +127,51 @@ const styles = StyleSheet.create({
   dynamicContainer: {
     flex: 1,
     width: wp('100%'),
-    justifyContent: "center",
+    justifyContent: "flex-end",
     alignItems: "center",
-    // marginBottom: hp('-.5%')
+    width: wp('100%'),
+    height: hp('100%'),
+    backgroundColor: "#1F7B55" // Add background color
+    
+   
+    
   },
   appName: {
     fontSize: hp('4%'),
     color: "white",
     padding: wp('7%'),
     fontWeight: "bold",
-    marginTop: hp('8%'),
-    marginBottom: hp("4%"),
+    marginTop: hp('3%'),
+    
   },
   questionBox: {
-    //flex: 1,
+    
     justifyContent: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#F2F8FC",
     width: wp('100%'),
-    padding: wp("2.5%"),
     borderTopRightRadius: 35,
     borderTopLeftRadius: 35,
+   
+    paddingVertical: hp('3%'),
+    
+    marginVertical: hp('8%'),
   },
   question: {
-    fontSize: moderateScale(35),
+    fontSize: moderateScale(30),
     fontWeight: "bold",
-    marginBottom: hp("4%"),
+    marginBottom: hp("2%"),
     textAlign: "center",
+    
   },
   optionsContainer: {
-    width: "100%",
+    width: wp('100%'),
   },
   option: {
-    padding: moderateScale(10),
+    padding: moderateScale(5),
     borderWidth: 2,
     borderColor: "#ddd",
     borderRadius: 60,
-    marginVertical: moderateScale(15),
+    marginVertical: moderateScale(8),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -167,4 +182,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(20),
     //marginHorizontal: moderateScale(70)
   },
+ 
+  
+
 });

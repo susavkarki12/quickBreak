@@ -112,10 +112,7 @@ const AppList = ({ navigation }) => {
 
     const selectApps = async () => {
         try {
-            const appsToBlock = selectedApps.length > 0 ? selectedApps : ["com.dummy.placeholder"];
             retrieveFromStrorage()
-
-            // navigation.navigate("DashBoard");
             navigation.navigate("DashBoard")
         } catch (error) {
             console.error("Error saving selected apps:", error);
@@ -123,8 +120,6 @@ const AppList = ({ navigation }) => {
     };
 
     const retrieveFromStrorage = async () => {
-        // Pass the array of apps to block
-        AppBlocker.setBlockedApps(selectedApps);
         await AsyncStorage.setItem('selectedApps', JSON.stringify(selectedApps));
 
         const usageGoal = await AsyncStorage.getItem('usageGoal')
@@ -156,7 +151,7 @@ const AppList = ({ navigation }) => {
         };
 
         try {
-            const response = await fetch("http://192.168.100.52:3000/api/onboarding/add", {
+            const response = await fetch("http://192.168.100.53:3000/api/onboarding/add", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

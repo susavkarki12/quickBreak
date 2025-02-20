@@ -1,10 +1,11 @@
 package com.quickbreak
 
 import android.app.Activity
-import 	android.app.usage.UsageStats
+import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -45,14 +46,16 @@ class ForegroundAppDetector(reactContext: ReactApplicationContext) : ReactContex
     @ReactMethod
     fun bringToForeground(promise: Promise) {
         try {
-            val currentActivity = currentActivity
-            if (currentActivity != null) {
-                val intent = Intent(currentActivity, currentActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                currentActivity.startActivity(intent)
+            val context = reactApplicationContext
+            val packageName = context.packageName
+            val intent = context.packageManager.getLaunchIntentForPackage(packageName)
+
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                context.startActivity(intent)
                 promise.resolve("App brought to foreground")
             } else {
-                promise.reject("ERROR", "Current activity is null")
+                promise.reject("ERROR", "Launch intent not found")
             }
         } catch (e: Exception) {
             promise.reject("ERROR", e.message)

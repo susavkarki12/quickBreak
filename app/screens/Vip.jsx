@@ -33,7 +33,7 @@ const VipComponent = ({navigation}) => {
       <Text style={{...styles.mainText,color:isDarkMode?"white":"black",paddingLeft:wp("12%")}}>VIP PREMIUM</Text>
       </View>
 
-      <Text style={{...styles.mainText,color:isDarkMode?"white":"black"}}>Upgrade to <Text style={{ color: "#ff3131" }}>VIP</Text> Member!</Text>
+      {/* <Text style={{...styles.mainText,color:isDarkMode?"white":"black"}}>Upgrade to <Text style={{ color: "#ff3131" }}>VIP</Text> Member!</Text> */}
       <Text style={{...styles.secondText,color:isDarkMode?"white":"black"}}>Unlock premium features to personalize your
         schedule, prioritize tasks, and maximize your{"\n"}
         focus.</Text>
@@ -84,15 +84,12 @@ const VipComponent = ({navigation}) => {
         </LinearGradient>
       }
       <View style={styles.footer}>
-      <LinearGradient
-        colors={["#ff3131", "#ff914d"]}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 1, y: 0 }}
+      <View
         style={{
           //width: wp('93%'),
           width: wp('100%'),
          paddingHorizontal: wp('5%'),
-          
+          backgroundColor: "#1F7B55",
           flexDirection: "row",
           marginTop: hp('0.2%'),
           bottom: 0,
@@ -167,7 +164,7 @@ const VipComponent = ({navigation}) => {
         <TouchableOpacity onPress={navtodashboard}>
         <Ionicons name="compass" size={wp('12%')} color="white" />
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       </View>
 

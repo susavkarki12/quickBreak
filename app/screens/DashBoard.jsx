@@ -8,8 +8,9 @@ import {
   Dimensions,
   TouchableOpacity,
   FlatList,
+  NativeModules, Alert
 } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { BarChart } from 'react-native-gifted-charts';
 const rgba = (r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
@@ -27,6 +28,8 @@ import {
 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import getWeeklyUsage from '../Service/WeeklyStat';
+import ReactNativeForegroundService from "@supersami/rn-foreground-service";
+const { AppBlocker, ForegroundAppDetector } = NativeModules;
 
 const rawData = [20, 45, 28, 80, 99, 43, 34];
 
@@ -36,6 +39,8 @@ const DashBoard = ({ navigation }) => {
   const [app, setApps] = useState([])
   const [selectedApps, setSelectedApps] = useState([]);
   const [data, setWeeklyData] = useState([]);
+  const [usage, setUsage] = useState(null)
+  const [reminder, setReminder] = useState(null)
 
   useEffect(() => {
     const getStoredData = async () => {
@@ -79,10 +84,128 @@ const DashBoard = ({ navigation }) => {
   useEffect(() => {
     getOnboardingEntries()
   }, []);
+
+  useEffect(() => {
+    const appsToBlock = selectedApps.length > 0 ? selectedApps : ["com.dummy.placeholder"];
+    AppBlocker.setBlockedApps(appsToBlock);
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const usageGoal = await AsyncStorage.getItem('usageGoal')
+      const reminderInterval = await AsyncStorage.getItem('reminderInterval')
+      const usage = parseInt(usageGoal.match(/\d+/)[0])
+      const reminder = parseInt(reminderInterval.match(/\d+/)[0])
+      setReminder(reminder)
+      setUsage(usage);
+    }
+    fetchData();
+  }, []);
+  useEffect(() => {
+    console.log("Starting foreground service...");
+
+    ReactNativeForegroundService.start({
+      id: 1244,
+      title: "Data Sync Service",
+      message: "Synchronizing data in the background...",
+      icon: "ic_launcher",
+      ongoing: true,
+      importance: "high",
+      visibility: "public",
+      color: "#FF5733",
+      setOnlyAlertOnce: true,
+      ServiceType: "dataSync",
+    })
+      .then(() => {
+        console.log("Foreground service started");
+
+        ReactNativeForegroundService.add_task(
+          async () => {
+            try {
+              const storedSelectedApps = await AsyncStorage.getItem('selectedApps');
+              const selectedAppsList = storedSelectedApps ? JSON.parse(storedSelectedApps) : [];
+              console.log("Latest selected apps inside task:", selectedAppsList);
+
+              await checkForegroundApp(Array.isArray(selectedAppsList) ? selectedAppsList : []);
+            } catch (error) {
+              console.error("Error fetching selected apps from storage:", error);
+            }
+          },
+          {
+            delay: 5000,
+            onLoop: true,
+            taskId: "app_usage_task",
+            onError: (e) => console.log("Task error:", e),
+          }
+        );
+      })
+      .catch((err) => console.log("Error starting service:", err));
+  }, []);
+
+  let counter = 1; // Global counter variable
+
+  const checkForegroundApp = async (selectedApps) => {
+    try {
+      console.log("Checking foreground app...");
+      console.log("Selected apps for blocking:", selectedApps);
+
+      let foregroundApp = await ForegroundAppDetector.getForegroundApp();
+      console.log(`Foreground app detected: ${foregroundApp}`);
+      const usageGoal = await AsyncStorage.getItem('usageGoal')
+      const reminderInterval = await AsyncStorage.getItem('reminderInterval')
+      const usage = parseInt(usageGoal.match(/\d+/)[0])
+      const reminder = parseInt(reminderInterval.match(/\d+/)[0])
+      console.log("object", usage, reminder)
+      const useTime= usage*60*60
+      const reminderTime= 15*60
+      if (selectedApps.includes(foregroundApp)) {
+        console.log("Blocking app:", foregroundApp);
+
+        for (let i = 1; i <= useTime; i++) {
+          foregroundApp = await ForegroundAppDetector.getForegroundApp(); // Update foreground app
+
+          if (!selectedApps.includes(foregroundApp)) {
+            console.log("Restricted app closed, but counter will not reset.");
+            return; // Exit without resetting counter
+          }
+
+          if (counter >= useTime) {
+            console.log("Counter reached 20, stopping increment.");
+            return; // Stop when counter reaches 20
+          }
+
+          console.log("Count:", counter);
+          counter++; // Increment counter
+
+          // Busy loop for delay (adjust iterations if needed)
+          for (let j = 1; j < 59999999; j++) { }
+
+          if (counter === useTime-reminderTime){
+            await ForegroundAppDetector.bringToForeground()
+            navigation.navigate("BreathingExercise")
+          }
+          if (counter === useTime) {
+            await AppBlocker.setBlockedApps(selectedApps)
+            console.log("Counter maxed out at 20.");
+          }
+        }
+      } else {
+        console.log("No restricted app is open.");
+      }
+    } catch (error) {
+      console.error("Error in checkForegroundApp:", error);
+    }
+  };
+
+
+
+
+
+
   const getOnboardingEntries = async () => {
     try {
       // Replace with your backend's IP and port
-      const response = await fetch("http://192.168.100.52:3000/api/onboarding/");  // Adjust URL based on your setup
+      const response = await fetch("http://192.168.100.53:3000/api/onboarding/");  // Adjust URL based on your setup
 
       // Check if the response is OK (status code 200)
       if (!response.ok) {
@@ -449,5 +572,6 @@ const styles = StyleSheet.create({
     width: wp("10%"),
   },
 });
+
 
 export default DashBoard;

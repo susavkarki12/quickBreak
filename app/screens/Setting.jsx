@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
+import { Ionicons, Fontisto } from "@expo/vector-icons";
+
+
 import {
 
   Text,
@@ -9,7 +12,8 @@ import {
   Animated,
   Image,
   Dimensions,
-  StatusBar
+  StatusBar,
+  Modal
 } from "react-native";
 import { ThemeContext } from "../Context/ThemeContext";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
@@ -27,6 +31,7 @@ export const Setting = ({ navigation }) => {
   const { isDarkMode, toggleTheme } = useContext(ThemeContext);
   const [isOn, setIsOn] = useState(false);
   const [isOnone, setIsOnone] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const position = useState(new Animated.Value(2))[0];
   const positionone = useState(new Animated.Value(2))[0];
   useEffect(() => {
@@ -56,6 +61,7 @@ export const Setting = ({ navigation }) => {
   }
 
 
+
   return (
     <View style={{ paddingHorizontal: 0, backgroundColor: isDarkMode ? "#001F3F" : "white" }}>
       <StatusBar barStyle="default" />
@@ -68,8 +74,8 @@ export const Setting = ({ navigation }) => {
           paddingLeft: wp("4%"),
         }}
       >
-        <View>
-          <TouchableOpacity onPress={navtodash}><FontAwesome name="angle-left" size={23} color={isDarkMode ? "white" : "black"} /></TouchableOpacity>
+        <View style={styles.buttonx}>
+          <TouchableOpacity onPress={navtodash}> <FontAwesome name="chevron-left" size={10} color="white" /></TouchableOpacity>
         </View>
         <Text
           style={{
@@ -82,7 +88,25 @@ export const Setting = ({ navigation }) => {
         >
           Settings
         </Text>
+
+
       </View>
+      <View style={styles.usagelimit}>
+        <View style={styles.leftSectionx}>
+          <FontAwesome name="clock-o" size={24} color="black" />
+          <View style={styles.textContainerx}>
+            <Text style={styles.titlex}>Daily Usage Limit</Text>
+            <Text style={styles.subtitlex}>Set daily limit</Text>
+          </View>
+        </View>
+
+        {/* Right Arrow Button */}
+        <TouchableOpacity onPress={() => setIsVisible(true)} style={styles.buttonx}>
+          <FontAwesome name="chevron-right" size={12} color="white" />
+        </TouchableOpacity>
+
+      </View>
+
       <View style={{
         marginTop: hp('2%')
       }}>
@@ -91,6 +115,25 @@ export const Setting = ({ navigation }) => {
           fontSize: hp('2.2%'),
           color: isDarkMode ? "white" : "black"
         }}>General</Text>
+        {/* Modal for Daily Limit */}
+        <Modal visible={isVisible} transparent animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Daily Limit</Text>
+
+              {/* Limit Display */}
+              <View style={styles.limitBox}>
+                <Text style={styles.limitText}>30 min</Text>
+                <Text style={styles.perDayText}>Per Day</Text>
+              </View>
+
+              {/* Done Button */}
+              <TouchableOpacity style={styles.doneButton} onPress={() => setIsVisible(false)}>
+                <Text style={styles.doneText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
         <View
           style={{
             display: "flex",
@@ -99,6 +142,7 @@ export const Setting = ({ navigation }) => {
             marginTop: hp('2%'),
             paddingLeft: wp('5%'),
             alignItems: "center",
+            paddingHorizontal: wp("5.5%")
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -113,7 +157,7 @@ export const Setting = ({ navigation }) => {
               <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>Language</Text>
             </View>
           </View>
-          <FontAwesome name="angle-right" size={15} color={isDarkMode ? "white" : "black"} />
+          <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
         </View>
         <View
           style={{
@@ -135,7 +179,7 @@ export const Setting = ({ navigation }) => {
             <View style={{ flexDirection: "column", paddingVertical: 2 }}>
               <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>Silent Mode</Text>
               <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>
-                Noctifications & Message
+                Notifications & Message
               </Text>
             </View>
           </View>
@@ -145,6 +189,8 @@ export const Setting = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
+
+
         <View
           style={{
             display: "flex",
@@ -307,68 +353,106 @@ export const Setting = ({ navigation }) => {
           </View>
         </View>
         <FontAwesome name="angle-right" size={23} color="black" />
+
+
       </View>
-
-      <LinearGradient
-        colors={["#ff3131", "#ff914d"]}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 1, y: 0 }}
-        style={{
-          width: wp('95%'),
-
-          marginLeft: wp('2%'),
-          borderRadius: 30,
-          //marginRight: wp('20%'),
-          marginTop: hp('14%'),
-          flexDirection: "row"
-        }}
-      >
-        <Image
+      <View styles={styles.footer}>
+        <LinearGradient
+          colors={['#ff3131', '#ff914d']}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 0 }}
           style={{
-            width: "12%",
-            height: "100%",
-            marginLeft: "2%",
+            //width: wp('93%'),
+            width: wp('100%'),
+            paddingHorizontal: wp('5%'),
 
-            marginBottom: "2%"
+            flexDirection: 'row',
 
-          }}
-          source={require("./icons/2.png")}
-        />
-        <Text style={{
-          fontFamily: "TTHoves",
-          color: "white",
-          width: "22%",
-          marginTop: "5%",
-          fontSize: 15,
-          marginLeft: "5%"
-        }}>DashBoard</Text>
-        <View style={{
-          width: "0.5%",
-          height: "35%",
-          backgroundColor: "white",
-          marginTop: "5%",
-          marginLeft: "5%",
-          marginRight: "8%"
-        }} />
-        <TouchableOpacity onPress={navtodash}>
-          <Image
-            style={[styles.footerLogo, {
-              width: wp('12%')
-            }]}
+            marginTop: hp('7%'),
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingVertical: hp('0.01%'),
+          }}>
 
-            source={require("./icons/1.png")}
+          <View
+            style={[
+              styles.footerLogo,
+              {
+                marginLeft: wp('2%'),
+              },
+            ]}>
+            <Fontisto
+              style={{
+                marginLeft: wp('1.85%'),
+                marginTop: hp('0.7%'),
+              }}
+              name="player-settings"
+              size={wp('7%')}
+              color="white"
+            />
+          </View>
+
+
+          <Text
+            style={{
+              fontFamily: 'TTHoves',
+              color: 'white',
+              fontSize: hp('2%'),
+              marginVertical: hp('1.5%'),
+              marginHorizontal: wp('2%'),
+            }}>
+            Settings
+          </Text>
+          <View
+            style={{
+              width: wp('0.3%'),
+
+              backgroundColor: 'white',
+
+              marginHorizontal: wp('5%'),
+            }}
           />
-        </TouchableOpacity>
-        <Image
-          style={styles.footerLogo}
-          source={require("./icons/3.png")}
-        />
-        <Image
-          style={styles.footerLogo}
-          source={require("./icons/4.png")}
-        />
-      </LinearGradient>
+          <TouchableOpacity>
+            <Ionicons name="compass" size={wp('12%')} color="white" />
+          </TouchableOpacity>
 
+
+          <TouchableOpacity >
+            <View
+              style={[
+                styles.footerLogo,
+                {
+                  marginHorizontal: wp('4%'),
+                },
+              ]}>
+              <Image
+                source={require('./icons/statistics.png')} // Replace with your image path
+                style={{
+                  width: wp('10%'),
+                  height: wp('8%'),
+                  alignContent: 'center',
+
+                }}
+                resizeMode="contain"
+              />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity >
+            <View style={[styles.footerLogo]} source={require('./icons/4.png')}>
+              <Ionicons
+                style={{
+                  marginLeft: wp('1.7%'),
+                  marginTop: hp('0.8%'),
+                }}
+                name="person"
+                size={wp('7%')}
+                color="white"
+              />
+            </View>
+          </TouchableOpacity>
+        </LinearGradient>
+      </View>
     </View>
 
   );
@@ -502,17 +586,100 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   footerLogo: {
-    width: "12%",
-    height: 45,
-    marginLeft: 8,
-    marginTop: 8,
-    marginBottom: "2%",
+    width: wp('11%'),
+    height: hp('5%'),
+    marginVertical: hp('0.5%'),
     borderWidth: 1,
     borderColor: "white",
-    borderTopLeftRadius: 50,
-    borderBottomLeftRadius: 50,
-    borderBottomRightRadius: 50,
-    borderTopRightRadius: 50,
-  }
+    borderRadius: wp("50%"),
+    alignItems: "center",
+    justifyContent: "center",
 
+  },
+  usagelimit: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: hp("1%"),
+    paddingHorizontal: wp("5.5%"),
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  leftSectionx: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  textContainerx: {
+    marginLeft: wp("3%"),
+  },
+  titlex: {
+    fontSize: wp("4.3%"),
+    fontWeight: "bold",
+    color: "black",
+  },
+  subtitlex: {
+    fontSize: 14,
+    color: "green",
+  },
+  buttonx: {
+    backgroundColor: "green",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalContainer: {
+
+
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    marginTop: hp("30%"),
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    width: wp("80%"),
+    padding: wp("1%"),
+    borderRadius: wp("5%"),
+    alignItems: "center",
+  },
+  modalTitle: {
+
+    fontSize: wp("5%"),
+    fontWeight: "bold",
+    marginBottom: wp("2%"),
+  },
+  limitBox: {
+    flexDirection: "row",
+    backgroundColor: "#f2f2f2",
+    padding: wp("2%"),
+    borderRadius: 5,
+    width: "100%",
+    justifyContent: "space-between",
+  },
+  limitText: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  perDayText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "green",
+  },
+  doneButton: {
+    backgroundColor: "red",
+    marginTop: hp("2%"),
+    paddingVertical: hp("1%"),
+    paddingHorizontal: wp("10%"),
+    borderRadius: wp("5%"),
+  },
+  doneText: {
+    color: "white",
+    fontSize: wp("4%"),
+    fontWeight: "bold",
+  },
 });
+
+
+
+
