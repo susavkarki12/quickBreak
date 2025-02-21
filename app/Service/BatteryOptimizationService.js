@@ -6,14 +6,13 @@ const checkAndOpenBatterySettings = async () => {
     if (Platform.OS === "android") {
         try {
             const isEnabled = await BatteryOptimizationModule.isBatteryOptimizationEnabled();
-            BatteryOptimizationModule.openAutoStartSettings()
-            console.log(isenabled)
             if (isEnabled) {
-                console.log("🔋 Battery Optimization is ENABLED. Opening settings...");
                 BatteryOptimizationModule.openBatteryOptimizationSettings();
             } else {
                 console.log("✅ Battery Optimization is DISABLED. No action needed.");
             }
+            const reCheck= await BatteryOptimizationModule.isBatteryOptimizationEnabled();
+            return reCheck
         } catch (error) {
             console.error("Error checking battery optimization:", error);
         }

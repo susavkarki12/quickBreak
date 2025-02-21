@@ -28,6 +28,7 @@ const PermissionStart = ({ navigation }) => {
 
                 </TypeWriter>
             </View>
+            <View style={{paddingTop:hp("18%")}}>
             <TouchableOpacity onPress={nav} >
                 <LinearGradient
                     colors={["#ff3131", "#ff914d"]}
@@ -39,6 +40,7 @@ const PermissionStart = ({ navigation }) => {
                     <Text style={styles.linearText}>Start</Text>
                 </LinearGradient>
             </TouchableOpacity>
+            </View>
             <Text style={[styles.thirdText, { marginTop: hp('5%') }]}>Your information is protected by
                 <Text style={{ color: "#ff3131" }}>APP NAME</Text> and will stay</Text>
             <Text style={[styles.thirdText, { marginBottom: hp('1.9%') }]}>and will stay
@@ -72,7 +74,6 @@ const styles = StyleSheet.create({
     },
     linearGrad: {
         marginHorizontal: wp('2%'),
-        marginTop: hp('18%'),
         alignItems: "center",
         borderRadius: 30,
     },

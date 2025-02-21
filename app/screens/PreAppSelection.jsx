@@ -22,6 +22,7 @@ const PreAppSelection = ({ navigation }) => {
                 style={styles.image}
                 source={require("./icons/9.png")}
             />
+            <View  style={{ paddingTop: hp('13%')}}>
             <TouchableOpacity onPress={nav}>
                 <LinearGradient
                     colors={["#ff3131", "#ff914d"]}
@@ -32,6 +33,7 @@ const PreAppSelection = ({ navigation }) => {
                     <Text style={styles.linearText}>Select Apps</Text>
                 </LinearGradient>
             </TouchableOpacity>
+            </View>
         </View>
     )
 }
@@ -47,7 +49,6 @@ const styles = StyleSheet.create({
         width: wp('88%'),
         alignSelf: "center",
         borderRadius: 30,
-        marginTop: hp('13%')
     },
     linearText: {
         fontFamily: "TTHoves",

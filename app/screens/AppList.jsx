@@ -113,7 +113,8 @@ const AppList = ({ navigation }) => {
     const selectApps = async () => {
         try {
             retrieveFromStrorage()
-            navigation.navigate("DashBoard")
+            await AsyncStorage.setItem("hasSeenOnboarding", "true");
+            navigation.replace("DashBoard");
         } catch (error) {
             console.error("Error saving selected apps:", error);
         }
@@ -140,11 +141,11 @@ const AppList = ({ navigation }) => {
             familiarity: familiarity ? [familiarity] : ["Familiar"], // Ensure it's an array
             permissions: [
                 {
-                  "usage_stats": true, 
-                 " overlay": false, 
-                  "auto_start": true
+                    "usage_stats": true,
+                    " overlay": false,
+                    "auto_start": true
                 }
-              ],
+            ],
             distractingApps: selectedApps.length > 0 ? selectedApps : [" "],
             creationDate: creationDate || new Date().toISOString(),
             id: id || "user12345",
@@ -162,7 +163,7 @@ const AppList = ({ navigation }) => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-           const result = await response.json();
+            const result = await response.json();
             console.log("Response from backend:", result);
         } catch (error) {
             console.error("Error sending onboarding data:", error);

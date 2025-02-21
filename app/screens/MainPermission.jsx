@@ -2,98 +2,130 @@ import { View, Text, StyleSheet, StatusBar, TouchableOpacity } from 'react-nativ
 import React, { useState, useEffect } from 'react'
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { LinearGradient } from "react-native-linear-gradient";
-import overlay from '../constants/permissions';
 import checkAndOpenBatterySettings from '../Service/BatteryOptimizationService';
-import { checkPermission, fetchData } from '../Service/UsageTime';
-import getUsageData from '../Service/UsageStatsService';
-import { NativeModules, Alert, Linking } from 'react-native';
+import { NativeModules } from 'react-native';
 
-const { UsageStatsModule, BatteryOptimizationModule, UsagePermissionModule } = NativeModules;
-
+const { BatteryOptimizationModule, UsagePermissionModule, OverlayPermissionModule } = NativeModules;
 
 const MainPermission = ({ navigation }) => {
-    const [usageData, setUsageData] = useState([]); // State to store usage data
-    useEffect(() => {
-        fetchData()
-    }, []);
+    const [backgroundGranted, setBackgroundGranted] = useState(false);
+    const [overlayGranted, setOverlayGranted] = useState(false);
+    const [autoStartGranted, setAutoStartGranted] = useState(false);
+    const [usageAccessGranted, setUsageAccessGranted] = useState(false);
 
     const nav = () => {
-        navigation.navigate("PreAppSelection")
-    }
+        if (backgroundGranted && overlayGranted && autoStartGranted && usageAccessGranted) {
+            navigation.navigate("PreAppSelection");
+        }
+    };
 
     const backgroundPermission = () => {
-        checkAndOpenBatterySettings();
-    }
-    const overlayPermission = () => {
-    }
-    const autoStart = async() => {
-        await BatteryOptimizationModule.openAutoStartSettings()
-    }
+        BatteryOptimizationModule.openAutoStartSettings()
+        setBackgroundGranted(true);
+    };
 
-    const usageAccess = async() => {
-        await UsagePermissionModule.openUsageAccessSettings()
-    }
+    const overlayPermission = async () => {
+        OverlayPermissionModule.checkOverlayPermission((granted) => {
+            if (granted) {
+                setOverlayGranted(true);
+            } else {
+                OverlayPermissionModule.requestOverlayPermission((success) => {
+                    setOverlayGranted(success);
+                });
+            }
+        });
+        
+    };
+    
+
+    const autoStart = async () => {
+        const isEnabled= checkAndOpenBatterySettings();
+        if(isEnabled===true){
+            setAutoStartGranted(false)
+        }else{
+            setAutoStartGranted(true)
+        }
+    };
+
+    const usageAccess = async () => {
+        await UsagePermissionModule.openUsageAccessSettings();
+        setUsageAccessGranted(true);
+    };
 
     return (
-
         <View style={styles.topView}>
-            <StatusBar barStyle="default" />
-
-            <Text style={styles.topText}>Final step! Allow these{"\n"}
-                permissions to finish setup.</Text>
-            <View style={styles.containerView}>
-                <Text style={styles.primaryText}>Background Permission {"\n"}
-
-                    <Text style={[styles.secondaryText, { paddingTop: hp('5%') }]}> This allows us to remind you when it's time{"\n"} to close the app</Text>
-
+            <View style={{flex: 1}}>
+                <StatusBar barStyle="default" />
+                <Text style={styles.topText}>Final step! Allow these{"\n"}permissions to finish setup.
                 </Text>
-                <TouchableOpacity onPress={backgroundPermission}>
-                    <Text style={[styles.buttonText, { marginVertical: hp('2.6%') }]}>Allow</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={[styles.containerView, { marginTop: hp('3%') }]}>
-                <Text style={styles.primaryText}>Display Over Other Apps
-                </Text>
-                <TouchableOpacity onPress={overlayPermission} >
-                    <Text style={[styles.buttonText, { marginLeft: wp('20%') }]}>Allow</Text>
-                </TouchableOpacity>
 
-            </View>
-            <View style={[styles.containerView, { marginTop: hp('3%') }]}>
-                <Text style={styles.primaryText}>Auto Start Permission
+                {/* Background Permission */}
+                <View style={styles.containerView}>
+                    <Text style={styles.primaryText}>Background Permission{"\n"}
+                        <Text style={styles.secondaryText}>This allows us to remind you when it's time{"\n"} to close the app.</Text>
+                    </Text>
+                    <TouchableOpacity onPress={backgroundPermission} disabled={backgroundGranted} style={styles.allowButton}>
+                        <Text style={[styles.buttonText, backgroundGranted && styles.disabledButton]}>
+                            {backgroundGranted ? "Allowed" : "Allow"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Display Over Other Apps */}
+                <View style={styles.containerView}>
+                    <Text style={styles.primaryText}>Display Over Other Apps</Text>
+                    <TouchableOpacity onPress={overlayPermission} disabled={overlayGranted} style={styles.allowButton}>
+                        <Text style={[styles.buttonText, overlayGranted && styles.disabledButton]}>
+                            {overlayGranted ? "Allowed" : "Allow"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Auto Start Permission */}
+                <View style={styles.containerView}>
+                    <Text style={styles.primaryText}>Auto Start Permission</Text>
+                    <TouchableOpacity onPress={autoStart} disabled={autoStartGranted} style={styles.allowButton}>
+                        <Text style={[styles.buttonText, autoStartGranted && styles.disabledButton]}>
+                            {autoStartGranted ? "Allowed" : "Allow"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Usage Access Permission */}
+                <View style={styles.containerView}>
+                    <Text style={styles.primaryText}>Usage Access Permission</Text>
+                    <TouchableOpacity onPress={usageAccess} disabled={usageAccessGranted} style={styles.allowButton}>
+                        <Text style={[styles.buttonText, usageAccessGranted && styles.disabledButton]}>
+                            {usageAccessGranted ? "Allowed" : "Allow"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+                <Text style={[styles.topText, {fontSize: hp("2.4%"), paddingTop: hp("2%")}]}> Without these permissions,{"\n"} <Text style={{color:"#ff3131" }}>Quick Break</Text> wont perform seamlessly
                 </Text>
-                <TouchableOpacity onPress={autoStart}>
-                    <Text style={[styles.buttonText, { marginLeft: wp('26%') }]}>Allow</Text>
-                </TouchableOpacity>
             </View>
-            <View style={[styles.containerView, { marginTop: hp('3%') }]}>
-                <Text style={styles.primaryText}>Usage Access Permission
-                </Text>
-                <TouchableOpacity onPress={usageAccess}>
-                    <Text style={[styles.buttonText, { marginLeft: wp('19%') }]}>Allow</Text>
-                </TouchableOpacity>
-            </View>
-            <TouchableOpacity onPress={nav} >
+            
+
+            {/* Finish Setup Button */}
+            <TouchableOpacity onPress={nav} disabled={!backgroundGranted || !overlayGranted || !autoStartGranted || !usageAccessGranted}>
                 <LinearGradient
-                    colors={["#ff3131", "#ff914d"]}
+                    colors={(!backgroundGranted || !overlayGranted || !autoStartGranted || !usageAccessGranted) ? ["#808080", "#A9A9A9"] : ["#ff3131", "#ff914d"]}
                     start={{ x: 0, y: 1 }}
                     end={{ x: 1, y: 0 }}
-                    style={styles.linearGrad}
+                    style={[styles.linearGrad, (!backgroundGranted || !overlayGranted || !autoStartGranted || !usageAccessGranted) && styles.disabledGradient]}
                 >
-
                     <Text style={styles.linearText}>Finish Setup</Text>
                 </LinearGradient>
             </TouchableOpacity>
-            <View style={{ alignItems: "center" }}>
+
+            <View style={{ alignItems: "center", paddingTop: hp("2%") }}>
                 <Text style={[styles.secondaryText, { color: "white", textDecorationLine: 'underline' }]}>Need help? Chat with us</Text>
             </View>
         </View>
-    )
-}
+    );
+};
 
 const styles = StyleSheet.create({
     topView: {
-
         flex: 1,
         backgroundColor: "black",
     },
@@ -102,41 +134,42 @@ const styles = StyleSheet.create({
         color: "white",
         marginLeft: wp('2%'),
         fontSize: hp("2.8%"),
-
-
     },
     containerView: {
         backgroundColor: "white",
         flexDirection: "row",
         marginHorizontal: wp('2%'),
         marginTop: hp('5%'),
-        borderRadius: 15
+        borderRadius: 15,
+        alignItems: 'center',
+        padding: hp('2%'),
+    },
+    primaryText: {
+        fontFamily: "TTHoves",
+        fontSize: hp('2%'),
+        flex: 1, // Pushes the button to the end
+    },
+    secondaryText: {
+        fontFamily: "TTHoves",
+        fontSize: hp('1.5%'),
+    },
+    allowButton: {
+        alignSelf: "center", // Aligns button to the center of the box
     },
     buttonText: {
         paddingVertical: hp('1%'),
         paddingHorizontal: wp('5%'),
         backgroundColor: "black",
         color: "white",
-        marginVertical: hp('1%'),
         fontFamily: "TTHoves",
         borderRadius: 20,
-        marginLeft: wp('6%'),
-        textAlign: "right"
+        textAlign: "center",
     },
-    primaryText: {
-        fontFamily: "TTHoves",
-        fontSize: hp('2%'),
-        marginVertical: hp('2%'),
-        marginHorizontal: wp('3%'),
-    },
-    secondaryText: {
-        fontFamily: "TTHoves",
-        fontSize: hp('1.5%'),
-        marginVertical: hp('3%'),
+    disabledButton: {
+        backgroundColor: "gray",
     },
     linearGrad: {
         marginHorizontal: wp('2%'),
-        marginTop: hp('38%'),
         alignItems: "center",
         borderRadius: 30,
     },
@@ -144,9 +177,10 @@ const styles = StyleSheet.create({
         fontFamily: "TTHoves",
         fontSize: hp("3%"),
         marginVertical: hp('2%'),
-
-
+    },
+    disabledGradient: {
+        opacity: 0.5
     }
-})
+});
 
-export default MainPermission
+export default MainPermission;

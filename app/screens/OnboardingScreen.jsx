@@ -90,7 +90,7 @@ console.log(uniqueId)
     } else {
       // If on the last page, navigate to the dashboard
       
-      navigation.navigate("PermissionStart")
+      navigation.navigate("AppFeature")
     }
   };
 
@@ -160,9 +160,5 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontFamily: "TTHoves",
-  },
- 
-  
-    
-  
+  },  
 });

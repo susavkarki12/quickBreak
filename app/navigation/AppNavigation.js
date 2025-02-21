@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState, useEffect} from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import OnboardingScreen from "../screens/OnboardingScreen";
 import { NavigationContainer } from "@react-navigation/native";
@@ -24,17 +24,32 @@ import AppList from "../screens/AppList";
 import Overlay from "../screens/OverlayScreen";
 import OverlayComponent from "../screens/OverlayComponent";
 import AnalyticsPage from "../screens/AnalyticsPage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Appfeatures from "../screens/Appfeatures";
 
 const AppStack = createNativeStackNavigator();
 
 const AppNavigation = () => {
+  const [initialRoute, setInitialRoute] = useState(null);
+
+    useEffect(() => {
+        const checkOnboardingStatus = async () => {
+            const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
+            setInitialRoute(hasSeenOnboarding ? "DashBoard" : "OnBoard");
+        };
+
+        checkOnboardingStatus();
+    }, []);
+    if (initialRoute === null) return null; // Avoid rendering before checking
+
+
   return (
 
-    <AppStack.Navigator
-      
+    <AppStack.Navigator      
       screenOptions={{
         headerShown: false,
       }}
+      initialRouteName={initialRoute}
     >
       <AppStack.Screen name="OnBoard" component= {OnboardingScreen} />
       <AppStack.Screen name="PermissionStart" component={PermissionStart} />
@@ -55,7 +70,7 @@ const AppNavigation = () => {
       <AppStack.Screen name="BreathingExercise" component={BreathingExercise} />
       <AppStack.Screen name="AppList" component={AppList} />
       <AppStack.Screen name="Overlay" component={Overlay} />
-      
+      <AppStack.Screen name="AppFeature" component={Appfeatures} />
     </AppStack.Navigator>
    
   );
