@@ -153,9 +153,6 @@ const VipComponent = ({navigation}) => {
                   width: wp('10%'),
                   height: wp('8%'),
                   alignContent:"center",
-                 
-                 
-                 
                 }}
                 resizeMode="contain"
               />
@@ -209,7 +206,8 @@ const styles = StyleSheet.create({
     width: wp('88%'),
     alignSelf: "center",
     borderRadius: 30,
-    marginTop: hp('2%')
+    marginTop: hp('2%'),
+    flex: 1
   },
   linearText: {
     fontFamily: "TTHoves",

@@ -1,25 +1,35 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, BackHandler } from 'react-native';
 import { Video } from 'expo-av';
 
+const BreathingExercise = () => {
+  const [playCount, setPlayCount] = useState(0); // Track number of times video has played
 
-const BreathingExercise  =()=> {
+  const handlePlaybackStatusUpdate = (status) => {
+    // Check if the video has finished playing
+    if (status.didJustFinish) {
+      if (playCount < 2) {
+        setPlayCount(playCount + 1); // Increment play count
+      } else {
+        // After the 3rd play, close the app
+        BackHandler.exitApp();
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
-      
       <Video
         source={require('../../assets/videos/breathingex.mp4')}
         style={styles.video}
-       
-        resizeMode="contain" 
-        shouldPlay 
-        isLooping
+        resizeMode="contain"
+        shouldPlay
+        isLooping={playCount < 2} // Allow looping only until play count reaches 3
+        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
       />
-
-      
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {

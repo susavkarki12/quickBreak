@@ -83,7 +83,7 @@ const MainPermission = ({ navigation }) => {
 
                 {/* Auto Start Permission */}
                 <View style={styles.containerView}>
-                    <Text style={styles.primaryText}>Auto Start Permission</Text>
+                    <Text style={styles.primaryText}>Disable Battery Optimization</Text>
                     <TouchableOpacity onPress={autoStart} disabled={autoStartGranted} style={styles.allowButton}>
                         <Text style={[styles.buttonText, autoStartGranted && styles.disabledButton]}>
                             {autoStartGranted ? "Allowed" : "Allow"}
@@ -100,7 +100,7 @@ const MainPermission = ({ navigation }) => {
                         </Text>
                     </TouchableOpacity>
                 </View>
-                <Text style={[styles.topText, {fontSize: hp("2.4%"), paddingTop: hp("2%")}]}> Without these permissions,{"\n"} <Text style={{color:"#ff3131" }}>Quick Break</Text> wont perform seamlessly
+                <Text style={[styles.topText, {fontSize: hp("2.4%"), paddingTop: hp("2%")}]}> Without these permissions, QUICK BREAK{"\n"} wont perform seamlessly.
                 </Text>
             </View>
             
@@ -117,9 +117,7 @@ const MainPermission = ({ navigation }) => {
                 </LinearGradient>
             </TouchableOpacity>
 
-            <View style={{ alignItems: "center", paddingTop: hp("2%") }}>
-                <Text style={[styles.secondaryText, { color: "white", textDecorationLine: 'underline' }]}>Need help? Chat with us</Text>
-            </View>
+            
         </View>
     );
 };
@@ -127,7 +125,7 @@ const MainPermission = ({ navigation }) => {
 const styles = StyleSheet.create({
     topView: {
         flex: 1,
-        backgroundColor: "black",
+        backgroundColor: "#1F7B55",
     },
     topText: {
         fontFamily: "TTHoves",
@@ -172,6 +170,8 @@ const styles = StyleSheet.create({
         marginHorizontal: wp('2%'),
         alignItems: "center",
         borderRadius: 30,
+        paddingBottom: 2,
+        bottom: hp('2%')
     },
     linearText: {
         fontFamily: "TTHoves",

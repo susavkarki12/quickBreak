@@ -114,7 +114,7 @@ const AppList = ({ navigation }) => {
         try {
             retrieveFromStrorage()
             await AsyncStorage.setItem("hasSeenOnboarding", "true");
-            navigation.replace("DashBoard");
+            navigation.replace("LastOnboardingScreen");
         } catch (error) {
             console.error("Error saving selected apps:", error);
         }

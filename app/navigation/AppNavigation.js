@@ -26,6 +26,8 @@ import OverlayComponent from "../screens/OverlayComponent";
 import AnalyticsPage from "../screens/AnalyticsPage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Appfeatures from "../screens/Appfeatures";
+import SignIn from "../screens/SignIn";
+import LastOnboardingScreen from "../screens/LastOnboardingScreen";
 
 const AppStack = createNativeStackNavigator();
 
@@ -49,8 +51,9 @@ const AppNavigation = () => {
       screenOptions={{
         headerShown: false,
       }}
-      initialRouteName={initialRoute}
+      // initialRouteName={initialRoute}
     >
+      {/* <AppStack.Screen name="SignIn" component={SignIn} /> */}
       <AppStack.Screen name="OnBoard" component= {OnboardingScreen} />
       <AppStack.Screen name="PermissionStart" component={PermissionStart} />
       <AppStack.Screen name="MainPermission" component={MainPermission} />
@@ -71,6 +74,7 @@ const AppNavigation = () => {
       <AppStack.Screen name="AppList" component={AppList} />
       <AppStack.Screen name="Overlay" component={Overlay} />
       <AppStack.Screen name="AppFeature" component={Appfeatures} />
+      <AppStack.Screen name="LastOnboardingScreen" component={LastOnboardingScreen} />
     </AppStack.Navigator>
    
   );

@@ -119,10 +119,11 @@ const DashBoard = ({ navigation }) => {
       .then(() => {
         console.log("Foreground service started");
 
+        // Foreground app monitoring task
         ReactNativeForegroundService.add_task(
           async () => {
             try {
-              const storedSelectedApps = await AsyncStorage.getItem('selectedApps');
+              const storedSelectedApps = await AsyncStorage.getItem("selectedApps");
               const selectedAppsList = storedSelectedApps ? JSON.parse(storedSelectedApps) : [];
               console.log("Latest selected apps inside task:", selectedAppsList);
 
@@ -132,18 +133,36 @@ const DashBoard = ({ navigation }) => {
             }
           },
           {
-            delay: 5000,
+            delay: 5000, // Runs every 5 seconds
             onLoop: true,
             taskId: "app_usage_task",
             onError: (e) => console.log("Task error:", e),
+          }
+        );
+
+        // Midnight reset task
+        ReactNativeForegroundService.add_task(
+          async () => {
+            const now = new Date();
+            if (now.getHours() === 0 && now.getMinutes() === 0) { // Midnight reset
+              console.log("Midnight reset: Counter set to 0, empty app list passed.");
+              counter = 0;
+              await AsyncStorage.setItem("counter", JSON.stringify(counter)); // Reset counter in storage
+              await checkForegroundApp([]); // Pass empty array
+            }
+          },
+          {
+            delay: 60000, // Check every minute
+            onLoop: true,
+            taskId: "midnight_reset_task",
+            onError: (e) => console.log("Midnight task error:", e),
           }
         );
       })
       .catch((err) => console.log("Error starting service:", err));
   }, []);
 
-  let counter = 1; // Global counter variable
-
+  // Function to check foreground app
   const checkForegroundApp = async (selectedApps) => {
     try {
       console.log("Checking foreground app...");
@@ -151,13 +170,18 @@ const DashBoard = ({ navigation }) => {
 
       let foregroundApp = await ForegroundAppDetector.getForegroundApp();
       console.log(`Foreground app detected: ${foregroundApp}`);
-      const usageGoal = await AsyncStorage.getItem('usageGoal')
-      const reminderInterval = await AsyncStorage.getItem('reminderInterval')
-      const usage = parseInt(usageGoal.match(/\d+/)[0])
-      const reminder = parseInt(reminderInterval.match(/\d+/)[0])
-      console.log("object", usage, reminder)
-      const useTime= usage*60*60
-      const reminderTime= 15*60
+
+      // Retrieve counter value from storage
+      let storedCounter = await AsyncStorage.getItem("counter");
+      counter = storedCounter ? JSON.parse(storedCounter) : 1;
+
+      // Retrieve usage goal and reminder interval from AsyncStorage
+      const usageGoal = await AsyncStorage.getItem("usageGoal");
+      const reminderInterval = await AsyncStorage.getItem("reminderInterval");
+
+      const useTime = parseInt(usageGoal) * 60 * 60; // Convert hours to seconds
+      const reminderTime = parseInt(reminderInterval) * 60; // Convert minutes to seconds
+
       if (selectedApps.includes(foregroundApp)) {
         console.log("Blocking app:", foregroundApp);
 
@@ -165,28 +189,29 @@ const DashBoard = ({ navigation }) => {
           foregroundApp = await ForegroundAppDetector.getForegroundApp(); // Update foreground app
 
           if (!selectedApps.includes(foregroundApp)) {
-            console.log("Restricted app closed, but counter will not reset.");
-            return; // Exit without resetting counter
+            console.log("Restricted app closed, counter will not reset.");
+            return;
           }
 
           if (counter >= useTime) {
-            console.log("Counter reached 20, stopping increment.");
-            return; // Stop when counter reaches 20
+            console.log("Counter reached usage limit, stopping increment.");
+            return;
           }
 
           console.log("Count:", counter);
           counter++; // Increment counter
+          await AsyncStorage.setItem("counter", JSON.stringify(counter)); // Persist counter
 
-          // Busy loop for delay (adjust iterations if needed)
-          for (let j = 1; j < 59999999; j++) { }
+          // Wait 1 second instead of busy looping
+          await new Promise(resolve => setTimeout(resolve, 1000));
 
-          if (counter === useTime-reminderTime){
-            await ForegroundAppDetector.bringToForeground()
-            navigation.navigate("BreathingExercise")
+          if (counter === useTime - reminderTime) {
+            await ForegroundAppDetector.bringToForeground();
+            navigation.navigate("ReminderPage");
           }
           if (counter === useTime) {
-            await AppBlocker.setBlockedApps(selectedApps)
-            console.log("Counter maxed out at 20.");
+            await AppBlocker.setBlockedApps(selectedApps);
+            console.log("Usage time exceeded. Apps blocked.");
           }
         }
       } else {
@@ -199,6 +224,8 @@ const DashBoard = ({ navigation }) => {
 
 
 
+// Busy loop for delay (adjust iterations if needed)
+for (let j = 1; j < 59999999; j++) { }
 
 
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Ionicons, Fontisto } from "@expo/vector-icons";
-
+import RNPickerSelect from "react-native-picker-select";
 
 import {
 
@@ -13,12 +13,11 @@ import {
   Image,
   Dimensions,
   StatusBar,
-  Modal
+  Modal, Platform
 } from "react-native";
 import { ThemeContext } from "../Context/ThemeContext";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-
-
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "react-native-linear-gradient";
 
 
@@ -32,6 +31,9 @@ export const Setting = ({ navigation }) => {
   const [isOn, setIsOn] = useState(false);
   const [isOnone, setIsOnone] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [selectedTime, setSelectedTime] = useState("");
+  const [time, setTime] = useState(new Date());
+
   const position = useState(new Animated.Value(2))[0];
   const positionone = useState(new Animated.Value(2))[0];
   useEffect(() => {
@@ -59,6 +61,11 @@ export const Setting = ({ navigation }) => {
   const navtodash = () => {
     navigation.navigate("DashBoard")
   }
+  const onChange = (event, selectedTime) => {
+    if (selectedTime) {
+      setTime(selectedTime);
+    }
+  };
 
 
 
@@ -105,6 +112,36 @@ export const Setting = ({ navigation }) => {
           <FontAwesome name="chevron-right" size={12} color="white" />
         </TouchableOpacity>
 
+        {selectedTime ? <Text>Selected Time: {selectedTime}</Text> : null}
+
+         {/* Modal for Time Picker */}
+      <Modal
+        visible={isVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            
+
+            {Platform.OS === "android" ? (
+              <DateTimePicker
+                value={time}
+                mode="time"
+                is24Hour={false}
+                display="spinner"
+                textColor="#ffffff"
+                onChange={onChange}
+              />
+            ) : null}
+
+            {/* Done Button */}
+            
+          </View>
+        </View>
+      </Modal>
+
       </View>
 
       <View style={{
@@ -116,21 +153,35 @@ export const Setting = ({ navigation }) => {
           color: isDarkMode ? "white" : "black"
         }}>General</Text>
         {/* Modal for Daily Limit */}
-        <Modal visible={isVisible} transparent animationType="fade">
+        <Modal visible={isVisible} transparent animationType="slide">
           <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Daily Limit</Text>
+            <View style={styles.pickerContainer}>
+              <Text style={styles.label}>Hours</Text>
+              <RNPickerSelect
+                onValueChange={(value) => setSelectedTime({ ...selectedTime, hours: value })}
+                items={[...Array(24).keys()].map((num) => ({ label: `${num}`, value: num }))}
+              />
 
-              {/* Limit Display */}
-              <View style={styles.limitBox}>
-                <Text style={styles.limitText}>30 min</Text>
-                <Text style={styles.perDayText}>Per Day</Text>
+              <Text style={styles.label}>Minutes</Text>
+              <RNPickerSelect
+                onValueChange={(value) => setSelectedTime({ ...selectedTime, minutes: value })}
+                items={[...Array(60).keys()].map((num) => ({ label: `${num}`, value: num }))}
+              />
+
+              <Text style={styles.label}>Seconds</Text>
+              <RNPickerSelect
+                onValueChange={(value) => setSelectedTime({ ...selectedTime, seconds: value })}
+                items={[...Array(60).keys()].map((num) => ({ label: `${num}`, value: num }))}
+              />
+
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Text style={styles.buttonText}>Select</Text>
+                </TouchableOpacity>
               </View>
-
-              {/* Done Button */}
-              <TouchableOpacity style={styles.doneButton} onPress={() => setIsVisible(false)}>
-                <Text style={styles.doneText}>Done</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -677,6 +728,37 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: wp("4%"),
     fontWeight: "bold",
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.7)", // Dim background
+  },
+  modalContainer: {
+    width: "85%",
+    backgroundColor: "#1e1e1e",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  setTimeText: {
+    color: "cyan",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  doneButton: {
+    marginTop: 10,
+    backgroundColor: "#007AFF",
+    padding: 10,
+    width: "100%",
+    alignItems: "center",
+    borderRadius: 5,
+  },
+  doneText: {
+    color: "white",
+    fontSize: 16,
   },
 });
 
