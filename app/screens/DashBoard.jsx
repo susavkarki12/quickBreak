@@ -81,9 +81,7 @@ const DashBoard = ({ navigation }) => {
 
     fetchWeeklyData();
   }, []);
-  useEffect(() => {
-    getOnboardingEntries()
-  }, []);
+
 
   useEffect(() => {
     const appsToBlock = selectedApps.length > 0 ? selectedApps : ["com.dummy.placeholder"];
@@ -165,85 +163,73 @@ const DashBoard = ({ navigation }) => {
   // Function to check foreground app
   const checkForegroundApp = async (selectedApps) => {
     try {
+      // Check if the task is already running
+      let isTaskRunning = await AsyncStorage.getItem("isTaskRunning");
+
+      if (isTaskRunning === "true") {
+        console.log("Task is already running.");
+        return; // Exit early to avoid running multiple instances
+      }
+
       console.log("Checking foreground app...");
       console.log("Selected apps for blocking:", selectedApps);
+
+      // Set flag to indicate the task is running
+      await AsyncStorage.setItem("isTaskRunning", "true");
 
       let foregroundApp = await ForegroundAppDetector.getForegroundApp();
       console.log(`Foreground app detected: ${foregroundApp}`);
 
-      // Retrieve counter value from storage
+      // Retrieve counter from AsyncStorage (default to 0 if empty)
       let storedCounter = await AsyncStorage.getItem("counter");
-      counter = storedCounter ? JSON.parse(storedCounter) : 1;
+      let counter = storedCounter ? JSON.parse(storedCounter) : 0;
 
-      // Retrieve usage goal and reminder interval from AsyncStorage
-      const usageGoal = await AsyncStorage.getItem("usageGoal");
-      const reminderInterval = await AsyncStorage.getItem("reminderInterval");
 
-      const useTime = parseInt(usageGoal) * 60 * 60; // Convert hours to seconds
-      const reminderTime = parseInt(reminderInterval) * 60; // Convert minutes to seconds
+      const stored = await AsyncStorage.getItem("totalMinutes");
 
+      // Convert both stored values to numbers before adding
+      const totalMinutes = stored ? parseInt(stored) : 0;  // Default to 0 if not found
+      const useTime = totalMinutes * 60; // Convert hours to seconds
+      const reminderTime = 15 * 60; // Convert minutes to seconds
       if (selectedApps.includes(foregroundApp)) {
-        console.log("Blocking app:", foregroundApp);
+        console.log("Blocking app detected:", foregroundApp);
 
-        for (let i = 1; i <= useTime; i++) {
+        // **Run counter every 1 second**
+        const interval = setInterval(async () => {
           foregroundApp = await ForegroundAppDetector.getForegroundApp(); // Update foreground app
 
           if (!selectedApps.includes(foregroundApp)) {
-            console.log("Restricted app closed, counter will not reset.");
+            console.log("Restricted app closed, stopping counter.");
+            clearInterval(interval);
+            await AsyncStorage.setItem("isTaskRunning", "false"); // Reset flag
             return;
           }
 
           if (counter >= useTime) {
-            console.log("Counter reached usage limit, stopping increment.");
+            console.log("Usage time exceeded, stopping counter.");
+            clearInterval(interval);
+            await AppBlocker.setBlockedApps(selectedApps); // Block apps
+            await AsyncStorage.setItem("isTaskRunning", "false"); // Reset flag
             return;
           }
 
+          counter++;
           console.log("Count:", counter);
-          counter++; // Increment counter
           await AsyncStorage.setItem("counter", JSON.stringify(counter)); // Persist counter
 
-          // Wait 1 second instead of busy looping
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
+          // Show reminder before time runs out
           if (counter === useTime - reminderTime) {
             await ForegroundAppDetector.bringToForeground();
             navigation.navigate("ReminderPage");
           }
-          if (counter === useTime) {
-            await AppBlocker.setBlockedApps(selectedApps);
-            console.log("Usage time exceeded. Apps blocked.");
-          }
-        }
+        }, 1000); // **Increments every 1 second**
       } else {
         console.log("No restricted app is open.");
+        await AsyncStorage.setItem("isTaskRunning", "false"); // Reset flag if no app is open
       }
     } catch (error) {
       console.error("Error in checkForegroundApp:", error);
-    }
-  };
-
-
-
-// Busy loop for delay (adjust iterations if needed)
-for (let j = 1; j < 59999999; j++) { }
-
-
-
-  const getOnboardingEntries = async () => {
-    try {
-      // Replace with your backend's IP and port
-      const response = await fetch("http://192.168.100.53:3000/api/onboarding/");  // Adjust URL based on your setup
-
-      // Check if the response is OK (status code 200)
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      // Parse the JSON response
-      const data = await response.json();
-      console.log("Fetched Onboarding Entries:", data);
-    } catch (error) {
-      console.error("Error fetching onboarding data:", error);
+      await AsyncStorage.setItem("isTaskRunning", "false"); // Reset flag on error
     }
   };
 
@@ -274,175 +260,173 @@ for (let j = 1; j < 59999999; j++) { }
   }
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={{ flex: 1 }}>
       <StatusBar barStyle="default" />
-      <View style={styles.topRow}>
-        <Image
-          style={{
-            width: wp('16%'),
-            height: hp('10%'),
-          }}
-          source={require('./icons/logo.png')}
-        />
-        <Text
-          style={{
-            fontFamily: 'TTHoves',
-            fontSize: hp('3%'),
-            marginTop: hp('2.5%'),
-          }}>
-          {' '}
-          Quick Break{' '}
-        </Text>
-      </View>
-      <View style={styles.topRow}>
-        <Text
-          style={{
-            fontFamily: 'TTHoves',
-            fontSize: hp('3%'),
-            fontWeight: 'bold',
-            flex: 1,
-          }}>
-          Just Keep moving {'\n'}Forward.
-        </Text>
-        <Image
-          style={{
-            width: wp('16%'),
-            height: hp('10%'),
-            marginRight: wp('5%'),
-          }}
-          source={require('./icons/logo.png')}
-        />
-      </View>
-      <View style={{
-        flexDirection: "row",
-        paddingLeft: wp("5%")
-      }}>
-
-        <View
-          style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View
+      <View style={{flex:1}}>
+        <View style={styles.topRow}>
+          <Image
             style={{
-              width: wp("2%"),
-              height: hp("1%"),
-              borderRadius: wp("0.8%"),
-              backgroundColor: 'red',
-              marginRight: wp("1%"),
+              width: wp('16%'),
+              height: hp('10%'),
             }}
+            source={require('./icons/logo.png')}
           />
-          <Text style={{ fontSize: wp("4%"), color: 'black' }}>Free User</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: wp("7%") }}>
-          <View
-            style={{
-              width: wp("2%"),
-              height: hp("1%"),
-              borderRadius: wp("0.9%"),
-              backgroundColor: 'orange',
-              marginRight: wp("1%"),
-            }}
-          />
-          <Text style={{ fontSize: wp("4%"), color: 'black' }}>Since 2024</Text>
-        </View>
-      </View>
-
-
-      <View
-        style={{
-          flexDirection: 'row',
-          marginLeft: wp('5%'),
-          marginTop: hp("2%"),
-
-        }}>
-        <Text
-          style={{
-            fontFamily: 'TTHoves',
-            fontSize: hp('2.5%'),
-            //fontWeight: "bold"
-          }}>
-          Usages
-        </Text>
-        <FontAwesome5
-          name="fire-alt"
-          size={20}
-          color="red"
-          style={{
-            flex: 1,
-
-            marginLeft: wp('1%'),
-          }}
-        />
-        <TouchableOpacity onPress={navToSeeMore}>
           <Text
             style={{
               fontFamily: 'TTHoves',
-              fontSize: hp('2%'),
-              marginRight: wp('4%'),
-              color: 'purple',
-              marginTop: hp('0.5%'),
+              fontSize: hp('3%'),
+              marginTop: hp('2.5%'),
             }}>
             {' '}
-            See More!
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View
-        style={{
-          marginHorizontal: wp('4%'),
-          marginTop: hp('4%'),
-        }}>
-        <BarChart
-          data={data}
-          barWidth={22}
-          noOfSections={5}
-          width={wp('80%')}
-          height={hp('18%')}
-          frontColor="purple"
-        />
-      </View>
-      <View style={styles.manageapps}>
-        <View style={styles.parent}>
-          <Text style={styles.header}>Manage Block Apps</Text>
-          <View style={styles.addAppContainer}>
-            <TouchableOpacity onPress={navtoapplists} style={styles.addButton}>
-              <FontAwesome name="plus-circle" size={20} color="#000" />
-              <Text style={styles.addButtonText}>Add a new app</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={styles.parent1}>
-          <Text style={styles.subHeader}>Apps</Text>
-          <Text style={styles.sortText}>
-            Sort by <Text style={styles.sortHighlight}>Blocked</Text>
+            Quick Break{' '}
           </Text>
         </View>
-        <View style={{ height: hp("25%") }}>
-          <FlatList
-            data={selectedApps}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.appItem}>
-                <Image
-                  source={{ uri: `data:image/png;base64,${getIcon(item.packageName)}` }}
-                  style={styles.appIcon}
-                />
-                <Text style={styles.appName}>{getAppName(item.packageName)}</Text>
-                <Text style={styles.blockedText}>Blocked</Text>
-              </View>
-            )}
+        <View style={styles.topRow}>
+          <Text
+            style={{
+              fontFamily: 'TTHoves',
+              fontSize: hp('3%'),
+              fontWeight: 'bold',
+              flex: 1,
+            }}>
+            Just Keep moving {'\n'}Forward.
+          </Text>
+          <Image
+            style={{
+              width: wp('16%'),
+              height: hp('10%'),
+              marginRight: wp('5%'),
+            }}
+            source={require('./icons/logo.png')}
           />
         </View>
-      </View>
-      <View style={{ paddingTop: hp('3%') }}>
-        <LinearGradient
-          colors={['#ff3131', '#ff914d']}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
+        <View style={{
+          flexDirection: "row",
+          paddingLeft: wp("5%")
+        }}>
+
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View
+              style={{
+                width: wp("2%"),
+                height: hp("1%"),
+                borderRadius: wp("0.8%"),
+                backgroundColor: 'red',
+                marginRight: wp("1%"),
+              }}
+            />
+            <Text style={{ fontSize: wp("4%"), color: 'black' }}>Free User</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: wp("7%") }}>
+            <View
+              style={{
+                width: wp("2%"),
+                height: hp("1%"),
+                borderRadius: wp("0.9%"),
+                backgroundColor: 'orange',
+                marginRight: wp("1%"),
+              }}
+            />
+            <Text style={{ fontSize: wp("4%"), color: 'black' }}>Since 2024</Text>
+          </View>
+        </View>
+
+
+        <View
           style={{
-            //width: wp('93%'),
+            flexDirection: 'row',
+            marginLeft: wp('5%'),
+            marginTop: hp("2%"),
+
+          }}>
+          <Text
+            style={{
+              fontFamily: 'TTHoves',
+              fontSize: hp('2.5%'),
+              //fontWeight: "bold"
+            }}>
+            Usages
+          </Text>
+          <FontAwesome5
+            name="fire-alt"
+            size={20}
+            color="red"
+            style={{
+              flex: 1,
+
+              marginLeft: wp('1%'),
+            }}
+          />
+          <TouchableOpacity onPress={navToSeeMore}>
+            <Text
+              style={{
+                fontFamily: 'TTHoves',
+                fontSize: hp('2%'),
+                marginRight: wp('4%'),
+                color: 'purple',
+                marginTop: hp('0.5%'),
+              }}>
+              {' '}
+              See More!
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View
+          style={{
+            marginHorizontal: wp('4%'),
+            marginTop: hp('4%'),
+          }}>
+          <BarChart
+            data={data}
+            barWidth={22}
+            noOfSections={5}
+            width={wp('80%')}
+            height={hp('18%')}
+            frontColor="purple"
+          />
+        </View>
+        <View style={styles.manageapps}>
+          <View style={styles.parent}>
+            <Text style={styles.header}>Manage Block Apps</Text>
+            <View style={styles.addAppContainer}>
+              <TouchableOpacity onPress={navtoapplists} style={styles.addButton}>
+                <FontAwesome name="plus-circle" size={20} color="#000" />
+                <Text style={styles.addButtonText}>Add a new app</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.parent1}>
+            <Text style={styles.subHeader}>Apps</Text>
+            <Text style={styles.sortText}>
+              Sort by <Text style={styles.sortHighlight}>Blocked</Text>
+            </Text>
+          </View>
+          <View style={{ height: hp("25%") }}>
+            <FlatList
+              data={selectedApps}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <View style={styles.appItem}>
+                  <Image
+                    source={{ uri: `data:image/png;base64,${getIcon(item.packageName)}` }}
+                    style={styles.appIcon}
+                  />
+                  <Text style={styles.appName}>{getAppName(item.packageName)}</Text>
+                  <Text style={styles.blockedText}>Blocked</Text>
+                </View>
+              )}
+            />
+          </View>
+        </View>
+        <View
+          style={{
+            backgroundColor: "#1F7B55",
             width: wp('100%'),
             paddingHorizontal: wp('5%'),
             flexDirection: 'row',
+            position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
@@ -477,10 +461,7 @@ for (let j = 1; j < 59999999; j++) { }
                 },
               ]}>
               <Fontisto
-                style={{
-                  marginLeft: wp('1.85%'),
-                  marginTop: hp('0.7%'),
-                }}
+
                 name="player-settings"
                 size={wp('7%')}
                 color="white"
@@ -497,10 +478,10 @@ for (let j = 1; j < 59999999; j++) { }
                 },
               ]}>
               <Image
-                source={require('./icons/statistics.png')} // Replace with your image path
+                source={require('../../assets/images/Analytics.png')} // Replace with your image path
                 style={{
-                  width: wp('10%'),
-                  height: wp('8%'),
+                  width: wp('11%'),
+                  height: wp('9%'),
                   alignContent: 'center',
                 }}
                 resizeMode="contain"
@@ -510,17 +491,14 @@ for (let j = 1; j < 59999999; j++) { }
           <TouchableOpacity onPress={navtovip}>
             <View style={[styles.footerLogo]} source={require('./icons/4.png')}>
               <Ionicons
-                style={{
-                  marginLeft: wp('1.7%'),
-                  marginTop: hp('0.8%'),
-                }}
+
                 name="person"
                 size={wp('7%')}
                 color="white"
               />
             </View>
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -536,8 +514,10 @@ const styles = StyleSheet.create({
     height: hp('5%'),
     marginVertical: hp('0.5%'),
     borderWidth: 1,
-    borderColor: 'white',
-    borderRadius: wp('50%'),
+    borderColor: "white",
+    borderRadius: wp("50%"),
+    alignItems: "center",
+    justifyContent: "center",
   },
   header: { fontSize: wp('5%'), fontWeight: 'bold' },
   addAppContainer: { alignItems: 'flex-end', marginLeft: wp('5%') },

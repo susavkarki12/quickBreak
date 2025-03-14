@@ -14,7 +14,7 @@ const Appfeatures = ({navigation}) => {
     { title: "Emergency Cycle", description: "15 extra minutes, then a 24-hour lock." }
   ];
   const nav=()=>{
-    navigation.navigate("PermissionStart")
+    navigation.navigate("MainPermission")
   }
   return (
     <View style={styles.container}>

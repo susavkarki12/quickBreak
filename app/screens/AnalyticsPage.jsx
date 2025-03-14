@@ -50,7 +50,7 @@ const AnalyticsPage = ({ navigation }) => {
   const [searchText, setSearchText] = useState("");
   const [mergedData, setMergedData] = useState([]);
   const [topApps, setTopApps] = useState([]);
-const [sortedData, setSortedData] = useState([]);
+  const [sortedData, setSortedData] = useState([]);
 
   useEffect(() => {
     const fetchUsageData = async () => {
@@ -84,7 +84,6 @@ const [sortedData, setSortedData] = useState([]);
   }, []);
 
 
-  console.log("merged", mergedData)
   useEffect(() => {
     const data = mergeAppUsageData(apps, usageData);
     setMergedData(data);
@@ -182,7 +181,7 @@ const [sortedData, setSortedData] = useState([]);
       </View>
     </View>
   );
-
+  console.log("topapps", topApps)
   const handleSearch = (text) => {
     setSearchText(text);
     if (text.trim() === "") {
@@ -335,84 +334,87 @@ const [sortedData, setSortedData] = useState([]);
         </View>
 
       </View>
-      <View style={{ paddingTop: hp('2%') }}>
-        <LinearGradient
-          colors={["#ff3131", "#ff914d"]}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            //width: wp('93%'),
-            width: wp('100%'),
-            paddingHorizontal: wp('5%'),
-            flexDirection: "row",
-            marginTop: hp('1%'),
-            bottom: 0,
-            paddingVertical: hp('1%'),
+      <LinearGradient
+        colors={["#1F7B55", "#1F7B55"]}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 1, y: 0 }}
+        style={{
+          //width: wp('93%'),
+          width: wp('100%'),
+          paddingHorizontal: wp('5%'),
+          position:"absolute",
+          flexDirection: "row",
+          marginTop: hp('2.6%'),
+          bottom: 0,
+          right: 0,
+          left: 0,
+          //paddingVertical: hp('1%'),
+          paddingVertical: hp("0.1%")
 
 
-          }}
-        >
+        }}
+      >
+        <View style={[styles.footerLogo, {
+
+        }]}>
           <Image
-            source={require('./icons/statistics.png')} // Replace with your image path
+            source={require('../../assets/images/Analytics.png')} // Replace with your image path
             style={{
-              width: wp('10%'),
-              height: wp('10%'),
+              width: wp('11.1%'),
+              height: wp('8.6%'),
               alignContent: "center",
+              marginVertical: hp('0.4%'),
+
+
+
             }}
             resizeMode="contain"
           />
-          <Text style={{
-            fontFamily: "TTHoves",
-            color: "white",
-            fontSize: hp('2%'),
-            marginVertical: hp('1.5%'),
-            marginHorizontal: wp('2%'),
 
-          }}>Analytics</Text>
-          <View style={{
-            width: wp("0.3%"),
+        </View>
 
-            backgroundColor: "white",
+        <Text style={{
+          fontFamily: "TTHoves",
+          color: "white",
+          fontSize: hp('2%'),
+          marginVertical: hp('1.5%'),
+          marginHorizontal: wp('2%'),
 
-            marginHorizontal: wp('5%'),
+        }}>Analytics</Text>
+        <View style={{
+          width: wp("0.3%"),
+
+          backgroundColor: "white",
+
+          marginHorizontal: wp('5%'),
 
 
-          }} />
-          <TouchableOpacity onPress={navtodashboard}>
-            <Ionicons name="compass" size={wp('12.2%')} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={navToSettings}>
-            <View style={[styles.footerLogo, {
-              marginHorizontal: wp('5%')
-            }]}>
-              <Fontisto
-                style={{
-                  marginLeft: wp('1.85%'),
-                  marginTop: hp('0.7%')
-                }}
-                name="player-settings" size={wp('7%')} color="white" />
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={navtovip} >
-            <View style={[styles.footerLogo, { marginLeft: wp('2%') }]}>
-              <Image
-                source={require("./icons/4.png")}
-                style={{
-                  width: wp('7%'),
-                  height: wp('7%'),
-                }}
-              />
-              <Ionicons
-                style={{
-                  marginLeft: wp('1.7%'),
-                  marginTop: hp('0.8%')
-                }}
-                name="person" size={wp('7%')} color="white"
-              />
-            </View>
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
+        }} />
+        <TouchableOpacity onPress={navtodashboard}>
+          <Ionicons name="compass" size={wp('12.2%')} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={navToSettings}>
+          <View style={[styles.footerLogo, {
+            marginHorizontal: wp('5%')
+          }]}>
+            <Fontisto
+              style={{
+                marginLeft: wp('1.85%'),
+                marginTop: hp('0.7%')
+              }}
+              name="player-settings" size={wp('7%')} color="white" />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={navtovip} >
+          <View style={[styles.footerLogo, { marginLeft: wp('2%') }]}>
+            source={require("./icons/4.png")}
+            <Ionicons style={{
+              marginLeft: wp('1.7%'),
+              marginTop: hp('0.8%')
+            }} name="person" size={wp('7%')} color="white" />
+          </View>
+        </TouchableOpacity>
+      </LinearGradient>
 
 
     </View>

@@ -13,17 +13,18 @@ import {
   Image,
   Dimensions,
   StatusBar,
-  Modal, Platform
+  Modal, Platform, ScrollView, Linking
 } from "react-native";
 import { ThemeContext } from "../Context/ThemeContext";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import DateTimePicker from "@react-native-community/datetimepicker";
+import Picker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "react-native-linear-gradient";
 
 
 const { width, height } = Dimensions.get("screen")
 import { FontAwesome } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 export const Setting = ({ navigation }) => {
@@ -33,7 +34,28 @@ export const Setting = ({ navigation }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [selectedTime, setSelectedTime] = useState("");
   const [time, setTime] = useState(new Date());
+  const [selectedHour, setSelectedHour] = useState(1);
+  const [selectedMinute, setSelectedMinute] = useState(0);
 
+  // Format time display
+  const formatTime = () => {
+    return `${selectedHour}:${selectedMinute.toString().padStart(2, "0")}`;
+  };
+
+  // Handle Confirm Button
+  const handleConfirm = async () => {
+    const formattedTime = formatTime();
+    console.log("Selected Time:", formattedTime); // 🔹 Print time to console
+    // Save time to AsyncStorage
+    const totalMinutes = (selectedHour * 60) + selectedMinute;
+
+    // Store the totalMinutes in state or AsyncStorage
+    console.log("Total minutes: ", totalMinutes);
+
+    // Optionally, save it to AsyncStorage
+    AsyncStorage.setItem("totalMinutes", JSON.stringify(totalMinutes));
+    setIsVisible(false);
+  };
   const position = useState(new Animated.Value(2))[0];
   const positionone = useState(new Animated.Value(2))[0];
   useEffect(() => {
@@ -61,16 +83,12 @@ export const Setting = ({ navigation }) => {
   const navtodash = () => {
     navigation.navigate("DashBoard")
   }
-  const onChange = (event, selectedTime) => {
-    if (selectedTime) {
-      setTime(selectedTime);
-    }
-  };
+
 
 
 
   return (
-    <View style={{ paddingHorizontal: 0, backgroundColor: isDarkMode ? "#001F3F" : "white" }}>
+    <View style={{ paddingHorizontal: 0, flex: 1, backgroundColor: isDarkMode ? "#001F3F" : "white" }}>
       <StatusBar barStyle="default" />
 
       <View
@@ -112,35 +130,57 @@ export const Setting = ({ navigation }) => {
           <FontAwesome name="chevron-right" size={12} color="white" />
         </TouchableOpacity>
 
-        {selectedTime ? <Text>Selected Time: {selectedTime}</Text> : null}
 
-         {/* Modal for Time Picker */}
-      <Modal
-        visible={isVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsVisible(false)}
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            
+        {/* Time Picker Modal */}
+        <Modal visible={isVisible} transparent animationType="fade">
+          <View style={styles.modalBackground}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.setTimeText}>Select Time</Text>
 
-            {Platform.OS === "android" ? (
-              <DateTimePicker
-                value={time}
-                mode="time"
-                is24Hour={false}
-                display="spinner"
-                textColor="#ffffff"
-                onChange={onChange}
-              />
-            ) : null}
+              <View style={styles.pickerContainer}>
+                {/* Hour Selector */}
+                <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
+                  {[0, 1, 2, 3].map((hour) => (
+                    <TouchableOpacity
+                      key={hour}
+                      onPress={() => setSelectedHour(hour)}
+                      style={[styles.pickerItem, selectedHour === hour && styles.selectedItem]}
+                    >
+                      <Text style={styles.pickerText}>{hour}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
 
-            {/* Done Button */}
-            
+                {/* Separator */}
+                <Text style={styles.separator}>:</Text>
+
+                {/* Minute Selector */}
+                <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
+                  {Array.from({ length: 41 }, (_, i) => i + 20).map((minute) => (
+                    <TouchableOpacity
+                      key={minute}
+                      onPress={() => setSelectedMinute(minute)}
+                      style={[styles.pickerItem, selectedMinute === minute && styles.selectedItem]}
+                    >
+                      <Text style={styles.pickerText}>{minute.toString().padStart(2, "0")}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Buttons */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity onPress={() => setIsVisible(false)} style={[styles.button, styles.cancelButton]}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleConfirm} style={[styles.button, styles.confirmButton]}>
+                  <Text style={styles.buttonText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
       </View>
 
@@ -153,38 +193,7 @@ export const Setting = ({ navigation }) => {
           color: isDarkMode ? "white" : "black"
         }}>General</Text>
         {/* Modal for Daily Limit */}
-        <Modal visible={isVisible} transparent animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.pickerContainer}>
-              <Text style={styles.label}>Hours</Text>
-              <RNPickerSelect
-                onValueChange={(value) => setSelectedTime({ ...selectedTime, hours: value })}
-                items={[...Array(24).keys()].map((num) => ({ label: `${num}`, value: num }))}
-              />
 
-              <Text style={styles.label}>Minutes</Text>
-              <RNPickerSelect
-                onValueChange={(value) => setSelectedTime({ ...selectedTime, minutes: value })}
-                items={[...Array(60).keys()].map((num) => ({ label: `${num}`, value: num }))}
-              />
-
-              <Text style={styles.label}>Seconds</Text>
-              <RNPickerSelect
-                onValueChange={(value) => setSelectedTime({ ...selectedTime, seconds: value })}
-                items={[...Array(60).keys()].map((num) => ({ label: `${num}`, value: num }))}
-              />
-
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Text style={styles.buttonText}>Select</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
         <View
           style={{
             display: "flex",
@@ -210,206 +219,121 @@ export const Setting = ({ navigation }) => {
           </View>
           <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
         </View>
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: hp('2%'),
-            paddingHorizontal: wp('5.5%'),
-            alignItems: "center",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <MaterialIcons
-              name="volume-off"
-              size={17}
-              color={isDarkMode ? "white" : "black"}
-              style={styles.icon}
-            />
-            <View style={{ flexDirection: "column", paddingVertical: 2 }}>
-              <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>Silent Mode</Text>
-              <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>
-                Notifications & Message
-              </Text>
+
+
+
+
+
+
+
+        <TouchableOpacity onPress={() => { navigation.navigate("PermissionSetting") }}>
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: hp('2%'),
+              paddingHorizontal: wp('5.5%'),
+              alignItems: "center",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <FontAwesome
+                name="mobile"
+                size={17}
+                color={isDarkMode ? "white" : "black"}
+                style={[styles.icon, {
+                  fontSize: hp('4%'),
+                  marginLeft: wp('2%')
+                }]}
+              />
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
+                  Previous Usage, Launches & Access
+                </Text>
+                <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>
+                  Device Permissions
+                </Text>
+              </View>
             </View>
+            <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
           </View>
-          <View style={styles.switchBackground}>
-            <TouchableOpacity onPress={toggleSwitchone}>
-              <Animated.View style={[styles.circle, { left: positionone }]} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: hp('2%'),
-            paddingHorizontal: wp('5.5%'),
-            alignItems: "center",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <FontAwesome
-              name="cog"
-              size={17}
-              color={isDarkMode ? "white" : "black"}
-              style={[styles.icon, { marginLeft: wp('0.9%') }]}
-            />
-            <View style={{ flexDirection: "column", paddingVertical: 2 }}>
-              <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>Mode</Text>
-              <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>Dark & Light</Text>
-            </View>
-          </View>
-          {/*<View style={{height:20,width:40,borderWidth:1,borderRadius:45,backgroundColor:'#FF4500',borderColor:'#FF4500'}}>
-            <TouchableOpacity><View style={{height:18,width:18,borderRadius:75,borderWidth:1,position:'relative',backgroundColor:'white',borderColor:'white'}}></View></TouchableOpacity>
-
-            </View>*/}
-          <View style={styles.switchBackground}>
-            <TouchableOpacity onPress={toggleSwitch}>
-              <Animated.View style={[styles.circle, { left: position }]} />
-            </TouchableOpacity>
-          </View>
-
-
-
-
-
-        </View>
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: hp('2%'),
-            paddingHorizontal: wp('5.5%'),
-            alignItems: "center",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <FontAwesome
-              name="mobile"
-              size={17}
-              color={isDarkMode ? "white" : "black"}
-              style={[styles.icon, {
-                fontSize: hp('4%'),
-                marginLeft: wp('2%')
-              }]}
-            />
-            <View style={{ flexDirection: "column", paddingVertical: 2 }}>
-              <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
-                Previous Usage, Launches & Access
-              </Text>
-              <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>
-                Device Permissions
-              </Text>
-            </View>
-          </View>
-          <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
-        </View>
+        </TouchableOpacity>
       </View>
-      <Text style={{ paddingLeft: wp('5%'), marginTop: hp('3%'), fontSize: hp('2.2%'), color: isDarkMode ? "white" : "black" }}>Learn More</Text>
-      <View
-        style={styles.learrnMore}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={styles.design}>
-            <View style={styles.outercircle}>
-              <View style={styles.innercircle}>
-                <View style={styles.logo}>
-                  <FontAwesome name="question" size={20} color="#black" />
+
+      <View style={{ flex: 1 }}>
+        <Text style={{ paddingLeft: wp('5%'), marginTop: hp('3%'), fontSize: hp('2.2%'), color: isDarkMode ? "white" : "black" }}>Learn More</Text>
+        <TouchableOpacity onPress={() => { Linking.openURL("https://quickbreakapp.blogspot.com/2025/03/about.html") }}>
+          <View
+            style={styles.learrnMore}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={styles.design}>
+                <View style={styles.outercircle}>
+                  <View style={styles.innercircle}>
+                    <View style={styles.logo}>
+                      <FontAwesome name="question" size={20} color="#black" />
+                    </View>
+                  </View>
                 </View>
               </View>
-            </View>
-          </View>
 
-          <View style={{ flexDirection: "column", paddingVertical: 2 }}>
-            <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>About</Text>
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>About</Text>
+              </View>
+            </View>
+            <FontAwesome name="angle-right" size={23} color="black" />
           </View>
-        </View>
-        <FontAwesome name="angle-right" size={23} color="black" />
-      </View>
-      <View
-        style={styles.learrnMore}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={styles.design}>
-            <View style={styles.outercircleone}>
-              <View style={styles.innercircleone}>
-                <View style={styles.logo}>
-                  <FontAwesome name="exclamation" size={20} color="blue" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => { Linking.openURL("https://quickbreakapp.blogspot.com/2025/03/terms-and-conditions.html") }}>
+          <View
+            style={styles.learrnMore}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={styles.design}>
+                <View style={styles.outercircleone}>
+                  <View style={styles.innercircleone}>
+                    <View style={styles.logo}>
+                      <FontAwesome name="exclamation" size={20} color="blue" />
+                    </View>
+                  </View>
                 </View>
               </View>
-            </View>
-          </View>
-          <View style={{ flexDirection: "column", paddingVertical: 2 }}>
-            <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
-              Terms & Conditions
-            </Text>
-          </View>
-        </View>
-        <FontAwesome name="angle-right" size={23} color="black" />
-      </View>
-      <View
-        style={styles.learrnMore}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={styles.design}>
-            <View style={styles.outercirclethree}>
-              <View style={styles.logo1}>
-                <FontAwesome name="lock" size={25} color="white" />
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
+                  Terms & Conditions
+                </Text>
               </View>
             </View>
+            <FontAwesome name="angle-right" size={23} color="black" />
           </View>
-          <View style={{ flexDirection: "column", paddingVertical: 2 }}>
-            <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
-              Privacy Policy
-            </Text>
-          </View>
-        </View>
-        <FontAwesome name="angle-right" size={23} color="black" />
-      </View>
-      <View
-        style={styles.learrnMore}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={styles.outercirclefour}>
-            <View style={styles.logo1}>
-              <FontAwesome name="star" size={25} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => { Linking.openURL("https://quickbreakapp.blogspot.com/2025/03/privacy-policy.html") }}>
+          <View
+            style={[styles.learrnMore]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={styles.design}>
+                <View style={styles.outercirclethree}>
+                  <View style={styles.logo1}>
+                    <FontAwesome name="lock" size={25} color="white" />
+                  </View>
+                </View>
+              </View>
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
+                  Privacy Policy
+                </Text>
+              </View>
             </View>
+            <FontAwesome name="angle-right" size={23} color="black" />
           </View>
-          <View style={{ flexDirection: "column", paddingVertical: 2 }}>
-            <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>Rate This App</Text>
-          </View>
-        </View>
-        <FontAwesome name="angle-right" size={23} color="black" />
+        </TouchableOpacity>
       </View>
-      <View
-        style={styles.learrnMore}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={styles.outercirclefive}>
-            <View style={styles.logo1}>
-              <FontAwesome name="share-alt" size={25} color="white" />
-            </View>
-          </View>
 
-          <View style={{ flexDirection: "column" }}>
-            <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
-              Share This App
-            </Text>
-          </View>
-        </View>
-        <FontAwesome name="angle-right" size={23} color="black" />
-
-
-      </View>
       <View styles={styles.footer}>
         <LinearGradient
-          colors={['#ff3131', '#ff914d']}
+          colors={['#1F7B55', '#1F7B55']}
           start={{ x: 0, y: 1 }}
           end={{ x: 1, y: 0 }}
           style={{
@@ -419,7 +343,7 @@ export const Setting = ({ navigation }) => {
 
             flexDirection: 'row',
 
-            marginTop: hp('7%'),
+            marginTop: hp('20.6%'),
             bottom: 0,
             left: 0,
             right: 0,
@@ -434,10 +358,7 @@ export const Setting = ({ navigation }) => {
               },
             ]}>
             <Fontisto
-              style={{
-                marginLeft: wp('1.85%'),
-                marginTop: hp('0.7%'),
-              }}
+              
               name="player-settings"
               size={wp('7%')}
               color="white"
@@ -464,12 +385,12 @@ export const Setting = ({ navigation }) => {
               marginHorizontal: wp('5%'),
             }}
           />
-          <TouchableOpacity>
+          <TouchableOpacity onPress={()=>{navigation.navigate("DashBoard")}}>
             <Ionicons name="compass" size={wp('12%')} color="white" />
           </TouchableOpacity>
 
 
-          <TouchableOpacity >
+          <TouchableOpacity onPress={()=>{navigation.navigate("AnalyticsPage")}} >
             <View
               style={[
                 styles.footerLogo,
@@ -478,24 +399,24 @@ export const Setting = ({ navigation }) => {
                 },
               ]}>
               <Image
-                source={require('./icons/statistics.png')} // Replace with your image path
+                source={require('../../assets/images/Analytics.png')} // Replace with your image path
                 style={{
-                  width: wp('10%'),
-                  height: wp('8%'),
+                  width: wp('11%'),
+                  height: wp('9%'),
                   alignContent: 'center',
 
                 }}
                 resizeMode="contain"
               />
+
+
+
             </View>
           </TouchableOpacity>
-          <TouchableOpacity >
+          <TouchableOpacity onPress={()=>{navigation.navigate("Vip")}}>
             <View style={[styles.footerLogo]} source={require('./icons/4.png')}>
               <Ionicons
-                style={{
-                  marginLeft: wp('1.7%'),
-                  marginTop: hp('0.8%'),
-                }}
+                
                 name="person"
                 size={wp('7%')}
                 color="white"
@@ -504,6 +425,7 @@ export const Setting = ({ navigation }) => {
           </TouchableOpacity>
         </LinearGradient>
       </View>
+
     </View>
 
   );
@@ -679,6 +601,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: hp("0.4%"),
   },
   modalContainer: {
 
@@ -733,35 +656,79 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.7)", // Dim background
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
   },
   modalContainer: {
     width: "85%",
-    backgroundColor: "#1e1e1e",
-    borderRadius: 10,
+    backgroundColor: "#1E1E1E",
+    borderRadius: 12,
     padding: 20,
     alignItems: "center",
+    borderColor: "#007AFF",
+    borderWidth: 1,
   },
   setTimeText: {
     color: "cyan",
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  pickerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    paddingVertical: 10,
+  },
+  picker: {
+    maxHeight: 150,
+    width: 70,
+    backgroundColor: "#333",
+    borderRadius: 8,
+    paddingVertical: 5,
+  },
+  pickerItem: {
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  selectedItem: {
+    backgroundColor: "#007AFF",
+    borderRadius: 6,
+  },
+  pickerText: {
+    color: "white",
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 10,
   },
-  doneButton: {
-    marginTop: 10,
-    backgroundColor: "#007AFF",
-    padding: 10,
+  separator: {
+    fontSize: 22,
+    color: "white",
+    marginHorizontal: 12,
+    fontWeight: "bold",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     width: "100%",
-    alignItems: "center",
-    borderRadius: 5,
+    marginTop: 15,
   },
-  doneText: {
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  confirmButton: {
+    backgroundColor: "#007AFF",
+  },
+  cancelButton: {
+    backgroundColor: "#555",
+  },
+  buttonText: {
     color: "white",
     fontSize: 16,
+    fontWeight: "bold",
   },
 });
-
-
-
 

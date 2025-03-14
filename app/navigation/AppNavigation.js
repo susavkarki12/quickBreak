@@ -28,6 +28,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Appfeatures from "../screens/Appfeatures";
 import SignIn from "../screens/SignIn";
 import LastOnboardingScreen from "../screens/LastOnboardingScreen";
+import TimePickerModal from "../screens/test";
+import PermissionSetting from "../screens/PermissionsSetting";
 
 const AppStack = createNativeStackNavigator();
 
@@ -54,6 +56,7 @@ const AppNavigation = () => {
       // initialRouteName={initialRoute}
     >
       {/* <AppStack.Screen name="SignIn" component={SignIn} /> */}
+      {/* <AppStack.Screen name="test" component={TimePickerModal} /> */}
       <AppStack.Screen name="OnBoard" component= {OnboardingScreen} />
       <AppStack.Screen name="PermissionStart" component={PermissionStart} />
       <AppStack.Screen name="MainPermission" component={MainPermission} />
@@ -75,6 +78,7 @@ const AppNavigation = () => {
       <AppStack.Screen name="Overlay" component={Overlay} />
       <AppStack.Screen name="AppFeature" component={Appfeatures} />
       <AppStack.Screen name="LastOnboardingScreen" component={LastOnboardingScreen} />
+      <AppStack.Screen name="PermissionSetting" component={PermissionSetting} />
     </AppStack.Navigator>
    
   );

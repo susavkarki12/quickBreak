@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, View, Text, BackHandler } from 'react-native';
+import { StyleSheet, View, Text, BackHandler, Image } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { FontAwesome } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
 const ReminderPage = ({ navigation }) => {
   const navToBreathing = () => {
@@ -20,66 +21,65 @@ const ReminderPage = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.appname}>
-        <FontAwesome name="instagram" size={80} color="white" />
-        <Text style={styles.txt}>
-          You have 15 minutes left{"\n"} for total daily usage.
-        </Text>
+        <Image source={require("../../assets/images/quick_logo.png")} style={styles.icon1} />
+        <Text style={styles.txt}>You have 15minutes left{"\n"}  for total daily usage.</Text>
       </View>
       <View style={styles.closeappbutton}>
-        <Text style={styles.txt2}>
-          Take a short breathing exercise before continuing to your app
-        </Text>
         <TouchableOpacity onPress={navToBreathing}>
-          <Text style={styles.textedit}>Breathing Exercise</Text>
+          <LinearGradient colors={["#ff3131", "#ff914d"]} style={styles.textedit}><Text style={styles.textedit}>Continue with Deep {"\n"}Breathing Session</Text></LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity onPress={closeApp}>
-          <Text style={styles.textedit1}>Continue in app</Text>
-        </TouchableOpacity>
+        <TouchableOpacity onPress={closeApp}><Text style={styles.textedit1}>Continue in app   </Text></TouchableOpacity>
       </View>
     </View>
-  );
-};
-
+  )
+}
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     height: hp('100%'),
-    backgroundColor: "black",
+    backgroundColor: "black"
   },
   appname: {
     alignItems: "center",
     marginTop: hp("25%"),
-    flex: 1,
+
   },
   closeappbutton: {
+    //marginTop: hp("39%"),
     alignItems: "center",
-    bottom: hp('2%'),
+    bottom: 0,
+    position: "absolute"
   },
   txt: {
     color: "white",
     paddingTop: hp('2%'),
     fontWeight: "bold",
-    fontSize: wp("7%"),
-  },
-  txt2: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: wp("7%"),
-    paddingBottom: 3,
+    fontSize: wp("7%")
   },
   textedit: {
-    color: "black",
-    fontSize: wp("8%"),
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    color: "white",
+
+    fontSize: hp("3.4%"),
+    borderBlockColor: "1px",
+
     width: wp("95%"),
     textAlign: "center",
     borderRadius: wp("3%"),
-    paddingVertical: hp("1%"),
-  },
-  textedit1: {
+    paddingVertical: hp("0.6%")
+
+
+  }, textedit1: {
     color: "white",
     paddingTop: hp("2%"),
-    fontSize: wp("8%"),
-  },
-});
+    fontSize: hp("4.4%")
 
-export default ReminderPage;
+  },
+  icon1: {
+    width: wp("20%"),
+    height: hp("10%"),
+    borderRadius: wp("50%"),
+    marginRight: wp("2.8%")
+  }
+})
+
+export default ReminderPage

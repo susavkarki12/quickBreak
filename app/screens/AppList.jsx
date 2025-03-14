@@ -130,45 +130,10 @@ const AppList = ({ navigation }) => {
         const id = await AsyncStorage.getItem('unique_id')
 
         console.log("usage", usageGoal, reminderInterval, familiarity, creationDate, id)
-        sendToBackend(usageGoal, reminderInterval, familiarity, creationDate, id);
 
     }
 
-    const sendToBackend = async (usageGoal, reminderInterval, familiarity, creationDate, id) => {
-        const data = {
-            usageGoal: usageGoal || "Reduce screen time", // Fallback default value
-            reminderInterval: reminderInterval || "30 minutes",
-            familiarity: familiarity ? [familiarity] : ["Familiar"], // Ensure it's an array
-            permissions: [
-                {
-                    "usage_stats": true,
-                    " overlay": false,
-                    "auto_start": true
-                }
-            ],
-            distractingApps: selectedApps.length > 0 ? selectedApps : [" "],
-            creationDate: creationDate || new Date().toISOString(),
-            id: id || "user12345",
-        };
-
-        try {
-            const response = await fetch("http://192.168.100.53:3000/api/onboarding/add", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const result = await response.json();
-            console.log("Response from backend:", result);
-        } catch (error) {
-            console.error("Error sending onboarding data:", error);
-        }
-    }
+    
 
     const memoizedFilteredApps = useMemo(() => filteredApps, [filteredApps]); // Memoizing the filtered list
 
