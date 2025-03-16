@@ -219,8 +219,8 @@ const styles = StyleSheet.create({
         borderColor: "#6c757d",
     },
     selectedCircle: {
-        backgroundColor: "#007bff",
-        borderColor: "#007bff",
+        backgroundColor: "#1F7B55",
+        borderColor: "#1F7B55",
     },
     noAppsText: {
         textAlign: "center",

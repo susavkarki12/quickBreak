@@ -15,9 +15,8 @@ const PreAppSelection = ({ navigation }) => {
         <View style={styles.container}>
       <StatusBar barStyle="default" />
 
-            <Text style={styles.firstText}>Now, let's start to focus</Text>
-            <Text style={styles.secondText}>Select upto 3 distracting Apps</Text>
-            <Text style={styles.firstText}>You can always change this later or create a new group of apps to lock</Text>
+            <Text style={styles.secondText}>Choose the apps or games that are most distracting.</Text>
+            <Text style={styles.firstText}>You can always change this later or create a new group of apps or games to lock.</Text>
             <Image
                 style={styles.image}
                 source={require("./icons/9.png")}
@@ -59,7 +58,7 @@ const styles = StyleSheet.create({
     },
     container: {
         height: hp('100%'),
-       
+        paddingTop: hp('1%'),
         backgroundColor: "black"
     },
     firstText: {

@@ -30,6 +30,9 @@ import SignIn from "../screens/SignIn";
 import LastOnboardingScreen from "../screens/LastOnboardingScreen";
 import TimePickerModal from "../screens/test";
 import PermissionSetting from "../screens/PermissionsSetting";
+import FirstPage from "../screens/FirstPage";
+import Usagelimit from "../screens/UsageLimit";
+import FocusSession from "../screens/FocusSession";
 
 const AppStack = createNativeStackNavigator();
 
@@ -53,10 +56,12 @@ const AppNavigation = () => {
       screenOptions={{
         headerShown: false,
       }}
-      // initialRouteName={initialRoute}
+      initialRouteName={initialRoute}
     >
       {/* <AppStack.Screen name="SignIn" component={SignIn} /> */}
       {/* <AppStack.Screen name="test" component={TimePickerModal} /> */}
+      <AppStack.Screen name="FirstPage" component= {FirstPage} />
+      <AppStack.Screen name="UsageLimit" component= {Usagelimit} />
       <AppStack.Screen name="OnBoard" component= {OnboardingScreen} />
       <AppStack.Screen name="PermissionStart" component={PermissionStart} />
       <AppStack.Screen name="MainPermission" component={MainPermission} />
@@ -79,6 +84,8 @@ const AppNavigation = () => {
       <AppStack.Screen name="AppFeature" component={Appfeatures} />
       <AppStack.Screen name="LastOnboardingScreen" component={LastOnboardingScreen} />
       <AppStack.Screen name="PermissionSetting" component={PermissionSetting} />
+      <AppStack.Screen name="FocusSession" component={FocusSession} />
+
     </AppStack.Navigator>
    
   );

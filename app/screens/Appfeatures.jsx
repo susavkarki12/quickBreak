@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from "react-native-linear-gradient";
 import {
   widthPercentageToDP as wp,
@@ -20,12 +20,14 @@ const Appfeatures = ({navigation}) => {
     <View style={styles.container}>
       {/* Icon and Title */}
       <View style={styles.header}>
-
-        <Text style={styles.title1}>Quick Break</Text>
+        <View style={styles.logoandtext}>
+          <Image source={require("../../assets/images/quick_logo.png")} style={styles.icon1} />
+          <Text style={styles.title1}>Quick Break</Text>
+        </View>
       </View>
 
       {/* Main Question */}
-      <Text style={styles.question}>Features To Keep You{"\n"} Stay Focused </Text>
+      <Text style={styles.question}>Key Features to{"\n"} Keep You Focused! </Text>
 
 
       {/* Buttons */}
@@ -74,13 +76,13 @@ const styles = StyleSheet.create({
   },
   title1: {
     color: 'white',
-    fontSize: wp('7%'),
+    fontSize: hp('4%'),
     fontWeight: 'bold',
     marginLeft: wp('2%'),
   },
   question: {
     color: 'white',
-    fontSize: wp('6%'),
+    fontSize: wp('7.8%'),
     fontWeight: 'bold',
     textAlign: 'center',
     marginTop: hp('4%'),
@@ -91,10 +93,20 @@ const styles = StyleSheet.create({
 
 
   separation: {
-    marginTop: hp("12%")
+    marginTop: hp("2%")
   },
 
-
+  logoandtext: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  icon1: {
+    width: wp('20%'),
+    height: hp('10%'),
+    borderRadius: wp("50%"),
+    marginRight: wp('2.8%'),
+  },
 
   linearGrad: {
 
@@ -104,7 +116,7 @@ const styles = StyleSheet.create({
     width: wp('90%'),
 
 
-
+    bottom:0
   },
   linearText: {
     fontFamily: "TTHoves",
@@ -115,13 +127,14 @@ const styles = StyleSheet.create({
 
   },
   bottom: {
+    bottom:0,
     marginTop: hp("3%")
   },
   card: {
     width: wp('90%'),
     backgroundColor: "#F2F8FC",
     borderRadius: wp('2%'),
-    paddingVertical: hp('0.5%'),
+    paddingVertical: hp('0.8%'),
 
     marginVertical: hp('2%'),
     alignItems: 'center',
@@ -131,14 +144,14 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   title: {
-    fontSize: wp('4.8%'),
+    fontSize: hp('2.8%'),
     fontWeight: 'bold',
     color: '#0C1445', // Dark blue text color
     textAlign: 'center',
     fontFamily: "TTHoves"
   },
   description: {
-    fontSize: wp('3.7%'),
+    fontSize: hp('2.2%'),
     color: '#000',
     textAlign: 'center',
     marginTop: hp('1%'),

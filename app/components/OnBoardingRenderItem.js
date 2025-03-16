@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   title1: {
     color: "#F0F8FF",
-    fontSize: hp('3.6%'),
+    fontSize: hp('5%'),
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: hp('-1%'),
@@ -301,8 +301,8 @@ const styles = StyleSheet.create({
   },
   description: {
     color: "#F0F2FC",
-    fontSize: hp('1.9%'),
-    marginVertical: hp("1%"),
+    fontSize: hp('2.2%'),
+    marginTop: hp("2%"),
     textAlign: "center",
     fontFamily: "TTHoves",
   },

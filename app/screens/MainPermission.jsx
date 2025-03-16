@@ -139,7 +139,7 @@ const MainPermission = ({ navigation }) => {
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={openAccessibilitySettings}>
                                         <LinearGradient
-                                            colors={["#ff3131", "#ff914d"]}
+                                            colors={["#555", "#555"]}
                                             start={{ x: 0, y: 1 }}
                                             end={{ x: 1, y: 0 }}
                                             style={styles.settingsButton}>
@@ -179,7 +179,7 @@ const MainPermission = ({ navigation }) => {
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={usageAccess}>
                                         <LinearGradient
-                                            colors={["#ff3131", "#ff914d"]}
+                                            colors={["#555", "#555"]}
                                             start={{ x: 0, y: 1 }}
                                             end={{ x: 1, y: 0 }}
                                             style={styles.settingsButton}>
@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
     topView: {
         flex: 1,
         backgroundColor: "#1F7B55",
+        paddingTop: hp('1%')
     },
     topText: {
         fontFamily: "TTHoves",
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
     },
     primaryText: {
         fontFamily: "TTHoves",
-        fontSize: hp('2%'),
+        fontSize: hp('2.5%'),
         flex: 1, // Pushes the button to the end
     },
     secondaryText: {
@@ -267,6 +268,7 @@ const styles = StyleSheet.create({
         bottom: hp('2%')
     },
     linearText: {
+        color: "white",
         fontFamily: "TTHoves",
         fontSize: hp("3%"),
         marginVertical: hp('2%'),
@@ -288,7 +290,7 @@ const styles = StyleSheet.create({
     },
     modalGradient: {
         padding: 20,
-        alignItems: "center",
+        //alignItems: "center",
         borderRadius: 15,
         backgroundColor: "#1F7B55"
     },
@@ -324,7 +326,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     settingsText: {
-        color: "black",
+        color: "white",
         fontSize: hp("2%"),
         fontWeight: "bold",
     },

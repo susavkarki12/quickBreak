@@ -23,75 +23,55 @@ const VipComponent = ({ navigation }) => {
 
 
   return (
-    <View style={{ height: hp('100%'), backgroundColor: isDarkMode ? "#001F3F" : "#F2F8FC", flex:1 }}>
+    <View style={{ height: hp('100%'), backgroundColor: isDarkMode ? "#001F3F" : "#F2F8FC", flex: 1 }}>
       <View style={styles.parent1}>
         <View style={styles.arrowsection}>
           <TouchableOpacity onPress={navtodashboard} style={styles.button2}>
             <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
         </View>
-        <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black", paddingLeft: wp("12%") }}>VIP PREMIUM</Text>
+        <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black", paddingLeft: wp("4%") }}>VIP PREMIUM</Text>
       </View>
 
-      <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>Upgrade to <Text style={{ color: "#ff3131" }}>VIP</Text> Member!</Text>
-      <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>Unlock premium features to personalize your
-        schedule, prioritize tasks, and maximize your{"\n"}
-        focus.</Text>
-      <Image
-        style={styles.image}
-        source={require("./icons/7.png")}
-      />
-      <View style={styles.tickRow}>
-        <FontAwesome name="check" size={23} color="#1F7B55" />
-        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>Intervention customization</Text>
-      </View>
-      <View style={styles.tickRow}>
-        <FontAwesome name="check" size={23} color="#1F7B55" />
-        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>Unlimited Time Tracking</Text>
-      </View>
-      <View style={styles.tickRow}>
-        <FontAwesome name="check" size={23} color="#1F7B55" />
-        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>Unlimited Apps Can Be Locked</Text>
-      </View>
-      <View style={styles.tickRow}>
-        <CheckBox
-          value={isSelected}
-          onValueChange={setSelection}
-        //style={styles.checkbox}
-        />
-        <Text style={styles.rowText}>I agree to the <Text style={{ color: "#ff3131" }}>Terms and Conditions</Text></Text>
-      </View>
+      <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>We're working on premium features to take your productivity to the next level!  Coming soon:
+      </Text>
 
-      {isSelected ?
-        <TouchableOpacity onPress={navtoreminder}>
-          <LinearGradient
-            colors={["#ff3131", "#ff914d"]}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.linearGrad}
-          >
-            <Text style={styles.linearText}>Launching soon!</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-        :
-        <LinearGradient
-          colors={["grey", "grey"]}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.linearGrad}
-        >
-          <Text style={styles.linearText}>Next</Text>
-        </LinearGradient>
-      }
-        <LinearGradient
-          colors={["#1F7B55", "#1F7B55"]}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-             //width: wp('93%'),
+      <View style={styles.tickRow}>
+        <FontAwesome name="check" size={23} color="#1F7B55" />
+        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>Customized Reminders </Text>
+      </View>
+      <View style={styles.tickRow}>
+        <FontAwesome name="check" size={23} color="#1F7B55" />
+        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>AI-Based Personalization </Text>
+      </View>
+      <View style={styles.tickRow}>
+        <FontAwesome name="check" size={23} color="#1F7B55" />
+        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>Schedule Blocking 
+        </Text>
+      </View>
+      <View style={styles.tickRow}>
+        <FontAwesome name="check" size={23} color="#1F7B55" />
+        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>Intervention Customization </Text>
+      </View>
+      <View style={styles.tickRow}>
+        <FontAwesome name="check" size={23} color="#1F7B55" />
+        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>And more powerful updates! </Text>
+      </View>
+      <View style={styles.tickRow}>
+        <FontAwesome name="check" size={23} color="#1F7B55" />
+        <Text style={{ ...styles.rowText, color: isDarkMode ? "white" : "black" }}>Stay tuned for an upgraded experience! </Text>
+      </View>
+      
+      
+      <LinearGradient
+        colors={["#1F7B55", "#1F7B55"]}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 1, y: 0 }}
+        style={{
+          //width: wp('93%'),
           width: wp('100%'),
           paddingHorizontal: wp('5%'),
-          position:"absolute",
+          position: "absolute",
           flexDirection: "row",
           marginTop: hp('2.6%'),
           bottom: 0,
@@ -103,69 +83,69 @@ const VipComponent = ({ navigation }) => {
 
 
 
-          }}
-        >
+        }}
+      >
 
 
-          <View style={[styles.footerLogo]}
-            source={require("./icons/4.png")}>
-            <Ionicons style={{
-              marginLeft: wp('1.7%'),
-              marginTop: hp('0.8%')
-            }} name="person" size={wp('7%')} color="white" />
+        <View style={[styles.footerLogo]}
+          source={require("./icons/4.png")}>
+          <Ionicons style={{
+            marginLeft: wp('1.7%'),
+            marginTop: hp('0.8%')
+          }} name="person" size={wp('7%')} color="white" />
+        </View>
+
+        <Text style={{
+          fontFamily: "TTHoves",
+          color: "white",
+          fontSize: hp('2%'),
+          marginVertical: '5%',
+          marginHorizontal: '5%',
+
+        }}>Premium</Text>
+        <View style={{
+          width: wp("0.3%"),
+
+          backgroundColor: "white",
+
+          marginHorizontal: wp('5%'),
+
+
+        }} />
+        <TouchableOpacity onPress={() => { navigation.navigate("Setting") }}>
+          <View style={[styles.footerLogo, {
+            marginLeft: wp('2%')
+          }]}>
+            <Fontisto
+              style={{
+                marginLeft: wp('1.85%'),
+                marginTop: hp('0.7%')
+              }}
+              name="player-settings" size={wp('7%')} color="white" />
           </View>
+        </TouchableOpacity>
 
-          <Text style={{
-            fontFamily: "TTHoves",
-            color: "white",
-            fontSize: hp('2%'),
-            marginVertical: hp('1.5%'),
-            marginHorizontal: wp('2%'),
+        <TouchableOpacity onPress={navtoanalytics}>
+          <View style={[styles.footerLogo, {
+            marginHorizontal: wp('4%'),
+            paddingHorizontal: wp('')
+          }]}>
 
-          }}>Premium</Text>
-          <View style={{
-            width: wp("0.3%"),
-
-            backgroundColor: "white",
-
-            marginHorizontal: wp('5%'),
-
-
-          }} />
-          <TouchableOpacity onPress={()=>{navigation.navigate("Setting")}}>
-            <View style={[styles.footerLogo, {
-              marginLeft: wp('2%')
-            }]}>
-              <Fontisto
-                style={{
-                  marginLeft: wp('1.85%'),
-                  marginTop: hp('0.7%')
-                }}
-                name="player-settings" size={wp('7%')} color="white" />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={navtoanalytics}>
-            <View style={[styles.footerLogo, {
-              marginHorizontal: wp('4%'),
-              paddingHorizontal: wp('')
-            }]}>
-
-              <Image
-                source={require('../../assets/images/Analytics.png')} // Replace with your image path
-                style={{
-                  width: wp('11%'),
-                  height: wp('9%'),
-                  alignContent: "center",
-                }}
-                resizeMode="contain"
-              />
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={navtodashboard}>
-            <Ionicons name="compass" size={wp('12%')} color="white" />
-          </TouchableOpacity>
-        </LinearGradient>
+            <Image
+              source={require('../../assets/images/Analytics.png')} // Replace with your image path
+              style={{
+                width: wp('11%'),
+                height: wp('9%'),
+                alignContent: "center",
+              }}
+              resizeMode="contain"
+            />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={navtodashboard}>
+          <Ionicons name="compass" size={wp('12%')} color="white" />
+        </TouchableOpacity>
+      </LinearGradient>
 
 
 
@@ -190,10 +170,10 @@ const styles = StyleSheet.create({
   },
   secondText: {
     fontFamily: "TTHoves",
-    fontSize: hp('2%'),
+    fontSize: hp('3%'),
     marginLeft: wp('6%'),
     marginTop: hp('3%'),
-
+    paddingBottom: hp('2%')
   },
   image: {
     width: wp('70%'),
@@ -202,7 +182,7 @@ const styles = StyleSheet.create({
   },
   rowText: {
     fontFamily: "TTHoves",
-    fontSize: hp('2%'),
+    fontSize: hp('2.3%'),
     marginLeft: wp('3%')
   },
   linearGrad: {

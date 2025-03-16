@@ -8,7 +8,7 @@ import {
   Dimensions,
   TouchableOpacity,
   FlatList,
-  NativeModules, Alert
+  NativeModules, Alert, ScrollView, Modal
 } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { LinearGradient } from 'react-native-linear-gradient';
@@ -31,8 +31,6 @@ import getWeeklyUsage from '../Service/WeeklyStat';
 import ReactNativeForegroundService from "@supersami/rn-foreground-service";
 const { AppBlocker, ForegroundAppDetector } = NativeModules;
 
-const rawData = [20, 45, 28, 80, 99, 43, 34];
-
 
 
 const DashBoard = ({ navigation }) => {
@@ -41,7 +39,74 @@ const DashBoard = ({ navigation }) => {
   const [data, setWeeklyData] = useState([]);
   const [usage, setUsage] = useState(null)
   const [reminder, setReminder] = useState(null)
+  const [isVisible, setIsVisible] = useState(false)
+  const [selectedTime, setSelectedTime] = useState("");
+  const [time, setTime] = useState(new Date());
+  const [selectedHour, setSelectedHour] = useState(null);
+  const [selectedMinute, setSelectedMinute] = useState(null);
+  const [hours, setHours] = useState("")
+  const [minutes, setMinutes] = useState("")
+  // Format time display
+  const formatTime = () => {
+    return `${selectedHour}:${selectedMinute.toString().padStart(2, "0")}`;
+  };
 
+  // Handle Confirm Button
+  const handleConfirm = async () => {
+    const formattedTime = formatTime();
+    console.log("Selected Time:", formattedTime); // 🔹 Print time to console
+    // Save time to AsyncStorage
+    const totalMinutes = (selectedHour * 60) + selectedMinute;
+   
+    // Store the totalMinutes in state or AsyncStorage
+    console.log("Total minutes: ", totalMinutes);
+
+    // Optionally, save it to AsyncStorage
+    AsyncStorage.setItem("totalMinutes", JSON.stringify(totalMinutes));
+    setIsVisible(false);
+  };
+
+  // 🔹 Load data from AsyncStorage when the app starts
+useEffect(() => {
+  const loadData = async () => {
+    try {
+      const savedMinutes = await AsyncStorage.getItem("minutes");
+      const savedHours = await AsyncStorage.getItem("hours");
+
+      if (savedMinutes !== null) {
+        setSelectedMinute(JSON.parse(savedMinutes));
+        setMinutes(JSON.parse(savedMinutes));
+      }
+      if (savedHours !== null) {
+        setSelectedHour(JSON.parse(savedHours));
+        setHours(JSON.parse(savedHours));
+      }
+    } catch (error) {
+      console.error("Error loading data", error);
+    }
+  };
+
+  loadData();
+}, []); // Runs only once when the component mounts
+
+// 🔹 Save data whenever selectedHour or selectedMinute changes
+useEffect(() => {
+  const saveData = async () => {
+    try {
+      if (selectedHour !== null) {
+        await AsyncStorage.setItem("hours", JSON.stringify(selectedHour));
+        setHours(selectedHour);
+      }
+      if (selectedMinute !== null) {
+        await AsyncStorage.setItem("minutes", JSON.stringify(selectedMinute));
+        setMinutes(selectedMinute);
+      }
+    } catch (error) {
+      console.error("Error saving data", error);
+    }
+  };
+  saveData();
+}, [selectedHour, selectedMinute]); // Runs whenever values change
   useEffect(() => {
     const getStoredData = async () => {
       try {
@@ -186,9 +251,9 @@ const DashBoard = ({ navigation }) => {
 
 
       const stored = await AsyncStorage.getItem("totalMinutes");
-
       // Convert both stored values to numbers before adding
       const totalMinutes = stored ? parseInt(stored) : 0;  // Default to 0 if not found
+      console.log("totalMinutes", totalMinutes)
       const useTime = totalMinutes * 60; // Convert hours to seconds
       const reminderTime = 15 * 60; // Convert minutes to seconds
       if (selectedApps.includes(foregroundApp)) {
@@ -260,139 +325,199 @@ const DashBoard = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, paddingTop: hp('1%') }}>
       <StatusBar barStyle="default" />
-      <View style={{flex:1}}>
+      <View style={{ flex: 1 }}>
         <View style={styles.topRow}>
           <Image
             style={{
-              width: wp('16%'),
-              height: hp('10%'),
+              width: wp('13.8%'),
+              height: hp('7%'),
+              borderRadius: 70
             }}
-            source={require('./icons/logo.png')}
+            source={require('../../assets/images/quick_logo.png')}
           />
           <Text
             style={{
               fontFamily: 'TTHoves',
               fontSize: hp('3%'),
-              marginTop: hp('2.5%'),
+              marginTop: hp('2%'),
             }}>
             {' '}
             Quick Break{' '}
           </Text>
         </View>
-        <View style={styles.topRow}>
-          <Text
-            style={{
-              fontFamily: 'TTHoves',
-              fontSize: hp('3%'),
-              fontWeight: 'bold',
-              flex: 1,
-            }}>
-            Just Keep moving {'\n'}Forward.
-          </Text>
-          <Image
-            style={{
-              width: wp('16%'),
-              height: hp('10%'),
-              marginRight: wp('5%'),
-            }}
-            source={require('./icons/logo.png')}
-          />
-        </View>
-        <View style={{
-          flexDirection: "row",
-          paddingLeft: wp("5%")
-        }}>
 
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View
-              style={{
-                width: wp("2%"),
-                height: hp("1%"),
-                borderRadius: wp("0.8%"),
-                backgroundColor: 'red',
-                marginRight: wp("1%"),
-              }}
-            />
-            <Text style={{ fontSize: wp("4%"), color: 'black' }}>Free User</Text>
+
+
+        <LinearGradient
+          colors={["#ff3131", "#ff914d"]}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.screenTime}>
+          <View style={{ display: "flex", flexDirection: "row", flexWrap: "nowrap", marginTop: hp('2%'), marginLeft: wp('4%') }}>
+            <Text style={{ flex: 1, color: "white", fontSize: hp('2.5%'), fontFamily: "TTHoves" }}>Current Streak</Text>
+            <Ionicons name="information-circle-outline" size={24} color="white" style={{
+              right: 8
+            }} />
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: wp("7%") }}>
-            <View
+          <View style={{ display: "flex", flexDirection: "row", alignItems: "center", display: "flex" }}>
+            <Image
+              source={require('../../assets/images/fire.webp')} // Replace with your image path
               style={{
-                width: wp("2%"),
-                height: hp("1%"),
-                borderRadius: wp("0.9%"),
-                backgroundColor: 'orange',
-                marginRight: wp("1%"),
+                width: wp('11%'),
+                height: wp('13%'),
+                alignContent: 'center',
+                marginLeft: wp('2%')
               }}
+              resizeMode="contain"
             />
-            <Text style={{ fontSize: wp("4%"), color: 'black' }}>Since 2024</Text>
+            <View >
+              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('4%'), fontFamily: "TTHoves" }}>
+                0d
+              </Text>
+              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('2%'), fontFamily: "TTHoves" }}>
+                Days Streak
+              </Text>
+            </View>
+
           </View>
-        </View>
-
-
-        <View
-          style={{
-            flexDirection: 'row',
-            marginLeft: wp('5%'),
-            marginTop: hp("2%"),
-
-          }}>
-          <Text
-            style={{
-              fontFamily: 'TTHoves',
-              fontSize: hp('2.5%'),
-              //fontWeight: "bold"
-            }}>
-            Usages
-          </Text>
-          <FontAwesome5
-            name="fire-alt"
-            size={20}
-            color="red"
-            style={{
-              flex: 1,
-
-              marginLeft: wp('1%'),
-            }}
-          />
-          <TouchableOpacity onPress={navToSeeMore}>
-            <Text
-              style={{
-                fontFamily: 'TTHoves',
-                fontSize: hp('2%'),
-                marginRight: wp('4%'),
-                color: 'purple',
-                marginTop: hp('0.5%'),
+          <View style={{ backgroundColor: "green", height: 2, width: "100%", marginVertical: hp('2%') }} />
+          <View style={{ display: "flex", flexDirection: "row", }}>
+            <View style={{ paddingLeft: wp('1%'), flex: 1 }}>
+              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('2%'), fontFamily: "TTHoves" }}>
+                Today's screen time
+              </Text>
+              <View style={{
+                backgroundColor: "#1F7B55",
+                width: wp('35%'),
+                justifyContent: "center", // Vertical centering
+                alignItems: "center",      // Horizontal centering
+                paddingVertical: hp('1%'), // Optional: for spacing around text
+                borderRadius: 10,
+                margin: hp('1%')
               }}>
-              {' '}
-              See More!
-            </Text>
-          </TouchableOpacity>
-        </View>
+                <Text style={{
+                  color: "white",
+                  fontSize: hp('3%'),
+                  fontFamily: "TTHoves",
+                  textAlign: "center", // Make sure the text itself is also centered
+                }}>
+                  used time
+                </Text>
+              </View>
 
-        <View
-          style={{
-            marginHorizontal: wp('4%'),
-            marginTop: hp('4%'),
-          }}>
-          <BarChart
-            data={data}
-            barWidth={22}
-            noOfSections={5}
-            width={wp('80%')}
-            height={hp('18%')}
-            frontColor="purple"
-          />
-        </View>
+              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('2%'), fontFamily: "TTHoves", paddingBottom: hp('2%') }}>
+                Limit exceeded/not
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('2%'), fontFamily: "TTHoves" }}>
+                Screen-time Limit
+              </Text>
+              <View style={{
+                backgroundColor: "#1F7B55",
+                width: wp('40%'),
+                //justifyContent: "center", // Vertical centering
+                alignItems: "center",      // Horizontal centering
+                paddingVertical: hp('1%'), // Optional: for spacing around text
+                borderRadius: 10,
+                margin: hp('1%'),
+                display: "flex",
+                flexDirection: "row",
+                marginRight: wp('1%')
+              }}>
+                <Text style={{
+                  color: "white",
+                  fontSize: hp('3%'),
+                  fontFamily: "TTHoves",
+                  paddingLeft: wp('1%')
+                  //textAlign: "center", // Make sure the text itself is also centered
+                }}>
+                  {hours}hr {minutes}min
+                </Text>
+
+                <View style={{
+                  backgroundColor: "black",
+                  width: wp('13%'),
+                  justifyContent: "center", // Vertical centering
+                  alignItems: "center",      // Horizontal centering
+                  paddingVertical: hp('0.5%'), // Optional: for spacing around text
+                  borderRadius: 10,
+                  display: "flex",
+                  flexDirection: "row",
+                  right: 8,
+                  position: "absolute"
+                }}>
+                  <TouchableOpacity onPress={() => setIsVisible(true)} >
+
+                    <Text style={{ textAlign: "center", color: "white", fontSize: hp('2%'), fontFamily: "TTHoves", }}>Edit </Text>
+                  </TouchableOpacity>
+
+                </View>
+
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <Modal visible={isVisible} transparent animationType="fade">
+          <View style={styles.modalBackground}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.setTimeText}>Select Time</Text>
+
+              <View style={styles.pickerContainer}>
+                {/* Hour Selector */}
+                <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
+                  {[0, 1, 2, 3].map((hour) => (
+                    <TouchableOpacity
+                      key={hour}
+                      onPress={() => setSelectedHour(hour)}
+                      style={[styles.pickerItem, selectedHour === hour && styles.selectedItem]}
+                    >
+                      <Text style={styles.pickerText}>{hour}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {/* Separator */}
+                <Text style={styles.separator}>:</Text>
+
+                {/* Minute Selector */}
+                <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
+                  {Array.from({ length: 41 }, (_, i) => i + 20).map((minute) => (
+                    <TouchableOpacity
+                      key={minute}
+                      onPress={() => setSelectedMinute(minute)}
+                      style={[styles.pickerItem, selectedMinute === minute && styles.selectedItem]}
+                    >
+                      <Text style={styles.pickerText}>{minute.toString().padStart(2, "0")}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Buttons */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity onPress={() => setIsVisible(false)} style={[styles.button, styles.cancelButton]}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleConfirm} style={[styles.button, styles.confirmButton]}>
+                  <Text style={styles.buttonText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+
         <View style={styles.manageapps}>
           <View style={styles.parent}>
             <Text style={styles.header}>Manage Block Apps</Text>
             <View style={styles.addAppContainer}>
               <TouchableOpacity onPress={navtoapplists} style={styles.addButton}>
-                <FontAwesome name="plus-circle" size={20} color="#000" />
+                <FontAwesome name="plus-circle" size={20} color="white" />
                 <Text style={styles.addButtonText}>Add a new app</Text>
               </TouchableOpacity>
             </View>
@@ -403,7 +528,7 @@ const DashBoard = ({ navigation }) => {
               Sort by <Text style={styles.sortHighlight}>Blocked</Text>
             </Text>
           </View>
-          <View style={{ height: hp("25%") }}>
+          <View style={{ height: hp("25%"), paddingTop: hp('2%') }}>
             <FlatList
               data={selectedApps}
               keyExtractor={item => item.id}
@@ -438,10 +563,10 @@ const DashBoard = ({ navigation }) => {
               fontFamily: 'TTHoves',
               color: 'white',
               fontSize: hp('2%'),
-              marginVertical: hp('1.5%'),
+              paddingVertical: "5%",
               marginHorizontal: wp('2%'),
             }}>
-            DashBoard
+            Dashboard
           </Text>
           <View
             style={{
@@ -499,8 +624,8 @@ const DashBoard = ({ navigation }) => {
             </View>
           </TouchableOpacity>
         </View>
-      </View>
-    </SafeAreaView>
+      </View >
+    </SafeAreaView >
   );
 };
 
@@ -519,25 +644,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  header: { fontSize: wp('5%'), fontWeight: 'bold' },
-  addAppContainer: { alignItems: 'flex-end', marginLeft: wp('5%') },
+  header: { fontSize: hp('3%'), fontWeight: 'bold' },
+  addAppContainer: {
+    alignItems: 'flex-end', marginLeft: wp('5%'), backgroundColor: "#1F7B55",
+
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: wp('0.4%'),
-    padding: wp('1%'),
+    padding: wp('2%'),
     borderRadius: wp('1%'),
     borderColor: '#267a3a',
   },
   addButtonText: {
     marginLeft: wp('1%'),
-    fontSize: wp('4.2%'),
+    fontSize: wp('4.4%'),
     fontWeight: 'bold',
+    color: "white",
   },
   subHeader: {
     fontSize: wp('5%'),
     fontWeight: 'bold',
-    color: '#267a3a',
+    color: 'black',
     flexBasis: '50%',
   },
   sortText: {
@@ -546,7 +674,7 @@ const styles = StyleSheet.create({
     flexBasis: '40%',
     textAlign: 'right',
   },
-  sortHighlight: { color: '#267a3a', fontWeight: 'bold' },
+  sortHighlight: { color: 'red', fontWeight: 'bold' },
   appItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -565,6 +693,7 @@ const styles = StyleSheet.create({
     marginTop: hp('1%'),
   },
   manageapps: {
+    paddingTop: hp('4%'),
     paddingHorizontal: wp('6%'),
   },
   parent1: {
@@ -577,6 +706,91 @@ const styles = StyleSheet.create({
   appIcon: {
     height: hp("5%"),
     width: wp("10%"),
+  },
+  screenTime: {
+    backgroundColor: "black",
+    width: wp('92%'),
+    marginLeft: wp('4%'),
+    borderRadius: 10,
+    marginTop: hp('3%'),
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+  },
+  modalContainer: {
+    width: "85%",
+    backgroundColor: "#1E1E1E",
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
+    borderColor: "#007AFF",
+    borderWidth: 1,
+  },
+  setTimeText: {
+    color: "cyan",
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  pickerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    paddingVertical: 10,
+  },
+  picker: {
+    maxHeight: 150,
+    width: 70,
+    backgroundColor: "#333",
+    borderRadius: 8,
+    paddingVertical: 5,
+  },
+  pickerItem: {
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  selectedItem: {
+    backgroundColor: "#007AFF",
+    borderRadius: 6,
+  },
+  pickerText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  separator: {
+    fontSize: 22,
+    color: "white",
+    marginHorizontal: 12,
+    fontWeight: "bold",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 15,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  confirmButton: {
+    backgroundColor: "#007AFF",
+  },
+  cancelButton: {
+    backgroundColor: "#555",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

@@ -22,8 +22,7 @@ import { LinearGradient } from "react-native-linear-gradient";
 
 
 const { width, height } = Dimensions.get("screen")
-import { FontAwesome } from "@expo/vector-icons";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
@@ -88,7 +87,7 @@ export const Setting = ({ navigation }) => {
 
 
   return (
-    <View style={{ paddingHorizontal: 0, flex: 1, backgroundColor: isDarkMode ? "#001F3F" : "white" }}>
+    <View style={{ paddingTop: hp('2%'), flex: 1, backgroundColor: isDarkMode ? "#001F3F" : "white" }}>
       <StatusBar barStyle="default" />
 
       <View
@@ -108,7 +107,8 @@ export const Setting = ({ navigation }) => {
             fontWeight: "bold",
             letterSpacing: 1,
             fontSize: wp('5%'),
-            color: isDarkMode ? "white" : "black"
+            color: isDarkMode ? "white" : "black",
+            paddingTop: hp('1%')
           }}
         >
           Settings
@@ -116,73 +116,7 @@ export const Setting = ({ navigation }) => {
 
 
       </View>
-      <View style={styles.usagelimit}>
-        <View style={styles.leftSectionx}>
-          <FontAwesome name="clock-o" size={24} color="black" />
-          <View style={styles.textContainerx}>
-            <Text style={styles.titlex}>Daily Usage Limit</Text>
-            <Text style={styles.subtitlex}>Set daily limit</Text>
-          </View>
-        </View>
 
-        {/* Right Arrow Button */}
-        <TouchableOpacity onPress={() => setIsVisible(true)} style={styles.buttonx}>
-          <FontAwesome name="chevron-right" size={12} color="white" />
-        </TouchableOpacity>
-
-
-        {/* Time Picker Modal */}
-        <Modal visible={isVisible} transparent animationType="fade">
-          <View style={styles.modalBackground}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.setTimeText}>Select Time</Text>
-
-              <View style={styles.pickerContainer}>
-                {/* Hour Selector */}
-                <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
-                  {[0, 1, 2, 3].map((hour) => (
-                    <TouchableOpacity
-                      key={hour}
-                      onPress={() => setSelectedHour(hour)}
-                      style={[styles.pickerItem, selectedHour === hour && styles.selectedItem]}
-                    >
-                      <Text style={styles.pickerText}>{hour}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                {/* Separator */}
-                <Text style={styles.separator}>:</Text>
-
-                {/* Minute Selector */}
-                <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 41 }, (_, i) => i + 20).map((minute) => (
-                    <TouchableOpacity
-                      key={minute}
-                      onPress={() => setSelectedMinute(minute)}
-                      style={[styles.pickerItem, selectedMinute === minute && styles.selectedItem]}
-                    >
-                      <Text style={styles.pickerText}>{minute.toString().padStart(2, "0")}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Buttons */}
-              <View style={styles.buttonRow}>
-                <TouchableOpacity onPress={() => setIsVisible(false)} style={[styles.button, styles.cancelButton]}>
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={handleConfirm} style={[styles.button, styles.confirmButton]}>
-                  <Text style={styles.buttonText}>Confirm</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-      </View>
 
       <View style={{
         marginTop: hp('2%')
@@ -200,31 +134,32 @@ export const Setting = ({ navigation }) => {
             flexDirection: "row",
             justifyContent: "space-between",
             marginTop: hp('2%'),
-            paddingLeft: wp('5%'),
+            paddingHorizontal: wp('5.5%'),
             alignItems: "center",
-            paddingHorizontal: wp("5.5%")
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <MaterialIcons
-              name="language"
-              //size={17}
+            <FontAwesome
+              name="cog"
+              size={17}
               color={isDarkMode ? "white" : "black"}
-              style={styles.icon}
+              style={[styles.icon, { marginLeft: wp('0.9%') }]}
             />
             <View style={{ flexDirection: "column", paddingVertical: 2 }}>
-              <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>English</Text>
-              <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>Language</Text>
+              <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>Mode</Text>
+              <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>Dark & Light</Text>
             </View>
           </View>
-          <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
+          {/*<View style={{height:20,width:40,borderWidth:1,borderRadius:45,backgroundColor:'#FF4500',borderColor:'#FF4500'}}>
+             <TouchableOpacity><View style={{height:18,width:18,borderRadius:75,borderWidth:1,position:'relative',backgroundColor:'white',borderColor:'white'}}></View></TouchableOpacity>
+ 
+             </View>*/}
+          <View style={styles.switchBackground}>
+            <TouchableOpacity onPress={toggleSwitch}>
+              <Animated.View style={[styles.circle, { left: position }]} />
+            </TouchableOpacity>
+          </View>
         </View>
-
-
-
-
-
-
 
         <TouchableOpacity onPress={() => { navigation.navigate("PermissionSetting") }}>
           <View
@@ -259,7 +194,112 @@ export const Setting = ({ navigation }) => {
             <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity >
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: hp('2%'),
+              paddingHorizontal: wp('5.5%'),
+              alignItems: "center",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <MaterialCommunityIcons
+                name="account-group"
+                size={hp('4%')}
+                color="black"
+                style={[styles.icon, { transform: [{ scale: 1.3 }] }]}
+              />
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
+                  Community
+                </Text>
+                <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>
+                  Join the community
+                </Text>
+              </View>
+            </View>
+            <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity >
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: hp('2%'),
+              paddingHorizontal: wp('5.5%'),
+              alignItems: "center",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Image
+                source={require('../../assets/images/feedback.webp')} // Replace with your image path
+                style={{
+                  width: wp('6.4%'),
+                  height: wp('9%'),
+                  //alignContent: 'center',
+
+                }}
+                resizeMode="contain"
+              />
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
+                  Help and Support
+                </Text>
+                <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>
+                  Ask for help
+                </Text>
+              </View>
+            </View>
+            <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity >
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: hp('2%'),
+              paddingHorizontal: wp('5.5%'),
+              alignItems: "center",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Image
+                source={require('../../assets/images/helpSupport.webp')} // Replace with your image path
+                style={{
+                  width: wp('7.5%'),
+                  height: wp('9%'),
+                  //alignContent: 'center',
+                  marginLeft: wp('-1.5%')
+                }}
+                resizeMode="contain"
+              />
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
+                  Feedback
+                </Text>
+                <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>
+                  Share your feedback
+                </Text>
+              </View>
+            </View>
+            <FontAwesome name="angle-right" size={23} color={isDarkMode ? "white" : "black"} />
+          </View>
+        </TouchableOpacity>
+
       </View>
+
+
+
 
       <View style={{ flex: 1 }}>
         <Text style={{ paddingLeft: wp('5%'), marginTop: hp('3%'), fontSize: hp('2.2%'), color: isDarkMode ? "white" : "black" }}>Learn More</Text>
@@ -329,9 +369,68 @@ export const Setting = ({ navigation }) => {
             <FontAwesome name="angle-right" size={23} color="black" />
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity >
+          <View
+            style={[styles.learrnMore]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={styles.design}>
+                
+                  <View style={styles.logo1}>
+                    <Image
+                      source={require('../../assets/images/star.webp')} // Replace with your image path
+                      style={{
+                        width: wp('11%'),
+                        height: wp('11%'),
+                        alignContent: 'center',
+
+                      }}
+                      resizeMode="contain"
+                    />
+                  </View>
+              </View>
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
+                  Rate This App
+                </Text>
+              </View>
+            </View>
+            <FontAwesome name="angle-right" size={23} color="black" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity >
+          <View
+            style={[styles.learrnMore]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={styles.design}>
+                  <View style={styles.logo1}>
+                    <Image
+                      source={require('../../assets/images/rateApp.webp')} // Replace with your image path
+                      style={{
+                        width: wp('11%'),
+                        height: wp('11%'),
+                        alignContent: 'center',
+
+                      }}
+                      resizeMode="contain"
+                    />
+                  </View>
+              </View>
+              <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+                <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>
+                  Share This App
+                </Text>
+              </View>
+            </View>
+            <FontAwesome name="angle-right" size={23} color="black" />
+          </View>
+        </TouchableOpacity>
       </View>
 
-      <View styles={styles.footer}>
+      <View style={styles.footer}>
         <LinearGradient
           colors={['#1F7B55', '#1F7B55']}
           start={{ x: 0, y: 1 }}
@@ -358,7 +457,7 @@ export const Setting = ({ navigation }) => {
               },
             ]}>
             <Fontisto
-              
+
               name="player-settings"
               size={wp('7%')}
               color="white"
@@ -385,12 +484,12 @@ export const Setting = ({ navigation }) => {
               marginHorizontal: wp('5%'),
             }}
           />
-          <TouchableOpacity onPress={()=>{navigation.navigate("DashBoard")}}>
+          <TouchableOpacity onPress={() => { navigation.navigate("DashBoard") }}>
             <Ionicons name="compass" size={wp('12%')} color="white" />
           </TouchableOpacity>
 
 
-          <TouchableOpacity onPress={()=>{navigation.navigate("AnalyticsPage")}} >
+          <TouchableOpacity onPress={() => { navigation.navigate("AnalyticsPage") }} >
             <View
               style={[
                 styles.footerLogo,
@@ -408,18 +507,19 @@ export const Setting = ({ navigation }) => {
                 }}
                 resizeMode="contain"
               />
-
-
-
             </View>
           </TouchableOpacity>
-          <TouchableOpacity onPress={()=>{navigation.navigate("Vip")}}>
-            <View style={[styles.footerLogo]} source={require('./icons/4.png')}>
-              <Ionicons
-                
-                name="person"
-                size={wp('7%')}
-                color="white"
+          <TouchableOpacity onPress={() => { navigation.navigate("FocusSession") }}>
+            <View style={[styles.footerLogo]} >
+            <Image
+                source={require('../../assets/images/hourglass.png')} // Replace with your image path
+                style={{
+                  width: wp('11%'),
+                  height: wp('8%'),
+                  alignContent: 'center',
+
+                }}
+                resizeMode="contain"
               />
             </View>
           </TouchableOpacity>
@@ -439,6 +539,12 @@ const styles = StyleSheet.create({
 
     fontSize: hp('3%'),
   },
+  footer: {
+    position: "absolute",  // Stick it to the bottom
+    bottom: 0,
+    left: 0,
+    right: 0,
+},
 
   outercircle: {
     width: wp('10%'),
@@ -573,7 +679,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: hp("1%"),
+    paddingVertical: hp("2%"),
     paddingHorizontal: wp("5.5%"),
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
@@ -586,13 +692,14 @@ const styles = StyleSheet.create({
     marginLeft: wp("3%"),
   },
   titlex: {
-    fontSize: wp("4.3%"),
+    fontSize: hp("2.8%"),
     fontWeight: "bold",
     color: "black",
   },
   subtitlex: {
-    fontSize: 14,
+    fontSize: hp('2.5%'),
     color: "green",
+    paddingTop: hp('0.54%')
   },
   buttonx: {
     backgroundColor: "green",

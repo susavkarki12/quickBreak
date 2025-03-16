@@ -35,7 +35,7 @@ const OnBoardingData = [
     id: 4, // This will be rendered later
     type: "static",
     title1: "ALL SET!",
-    description: "Your journey to a calmer, more \n productive you starts now.",
+    description: "Your journey to a calmer, more productive version of yourself starts now.",
     image: require("../../assets/images/onboardingLast.webp"),
   },
 ];
