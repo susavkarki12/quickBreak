@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, COMMON_STYLES, APP_CONSTANTS } from '../constants/theme';
+import { COLORS, COMMON_STYLES, APP_CONSTANTS, SPACING, VERTICAL_SPACING } from '../constants/theme';
 import ThemeToggle from './ThemeToggle';
 
 const Header = ({ isDarkMode, onThemeToggle }) => {
@@ -16,7 +16,12 @@ const Header = ({ isDarkMode, onThemeToggle }) => {
 
 const styles = StyleSheet.create({
     headerContainer: {
-        ...COMMON_STYLES.headerContainer,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.lg,
+        paddingTop: 10,
+        paddingBottom: 10,
         borderBottomWidth: 1,
     },
     appName: COMMON_STYLES.appName,

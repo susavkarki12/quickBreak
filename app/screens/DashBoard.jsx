@@ -272,50 +272,236 @@ const DashBoard = ({navigation}) => {
     fetchWeeklyData();
   }, []);
 
+  // Helper function to extract package names
+  const extractPackageNames = (appsList) => {
+    if (!Array.isArray(appsList) || appsList.length === 0) return [];
+    
+    const packageNames = [];
+    for (const app of appsList) {
+      if (typeof app === 'string') {
+        packageNames.push(app);
+      } else if (app && typeof app === 'object' && app.packageName) {
+        packageNames.push(app.packageName);
+      }
+    }
+    return packageNames;
+  };
+
+  // Unified navigation function
+  const navigateTo = (screen) => {
+    navigation.navigate(screen);
+  };
+
+  // Replace the old navigation functions
+  const navToSeeMore = () => navigateTo(NAVIGATION.SCREENS.ANALYTICS);
+  const navToSettings = () => navigateTo(NAVIGATION.SCREENS.SETTINGS);
+  const navtoanalytics = () => navigateTo(NAVIGATION.SCREENS.ANALYTICS);
+  const navtovip = () => navigateTo(NAVIGATION.SCREENS.VIP);
+  const navtoapplists = () => navigateTo(NAVIGATION.SCREENS.APP_LIST);
+
+  // Function to check foreground app
+  const checkForegroundApp = async selectedApps => {
+    try {
+      // Use helper function to extract package names
+      const packageNames = extractPackageNames(selectedApps);
+
+      // If no valid apps, exit early
+      if (packageNames.length === 0) {
+        return;
+      }
+
+      // Check if the task is already running
+      let isTaskRunning = await safeGetItem(STORAGE_KEYS.IS_TASK_RUNNING);
+      if (isTaskRunning === 'true') {
+        return;
+      }
+
+      // Set flag to indicate the task is running
+      await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'true');
+
+      // Get current foreground app
+      let foregroundApp = await ForegroundAppDetector.getForegroundApp();
+
+      if (!foregroundApp) {
+        await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
+        return;
+      }
+
+      // Retrieve counter from AsyncStorage
+      const counterStr = (await safeGetItem(STORAGE_KEYS.COUNTER)) || '0';
+      let counter = parseInt(counterStr);
+      const totalMinutesStr =
+        (await safeGetItem(STORAGE_KEYS.TOTAL_MINUTES)) || '0';
+      const totalMinutes = parseInt(totalMinutesStr);
+
+      const useTime = totalMinutes * 60; // Convert minutes to seconds
+      const reminderTime = 15 * 60; // 15 minutes in seconds
+
+      // Check if foreground app is in the list of apps to block
+      const shouldBlock = packageNames.includes(foregroundApp);
+
+      if (shouldBlock) {
+        const interval = setInterval(async () => {
+          try {
+            // Check if app is still in foreground
+            foregroundApp = await ForegroundAppDetector.getForegroundApp();
+
+            if (!foregroundApp || !packageNames.includes(foregroundApp)) {
+              clearInterval(interval);
+              await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
+              return;
+            }
+
+            if (counter >= useTime) {
+              clearInterval(interval);
+              await AppBlocker.setBlockedApps(packageNames);
+              await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
+              return;
+            }
+
+            counter++;
+            await safeSetItem(STORAGE_KEYS.COUNTER, counter.toString());
+
+            if (counter === useTime - reminderTime) {
+              await ForegroundAppDetector.bringToForeground();
+              navigation.navigate(NAVIGATION.SCREENS.REMINDER_PAGE);
+            }
+          } catch (error) {
+            console.error('Error in monitoring interval:', error);
+            clearInterval(interval);
+            await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
+          }
+        }, 1000);
+      } else {
+        await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
+      }
+    } catch (error) {
+      console.error('Error in checkForegroundApp:', error);
+      await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
+    }
+  };
+
+  // Refactoring the monitorAppUsage function to use the extractPackageNames helper
+  const monitorAppUsage = async () => {
+    try {
+      const storedSelectedApps = await safeGetItem(STORAGE_KEYS.SELECTED_APPS);
+      if (!storedSelectedApps) return;
+
+      try {
+        // Parse stored selected apps and get package names
+        const parsedSelectedApps = JSON.parse(storedSelectedApps);
+        
+        // Extract package names and check if valid
+        const packageNames = extractPackageNames(parsedSelectedApps);
+        if (packageNames.length === 0) return;
+        
+        // Check foreground app with these package names
+        await checkForegroundApp(packageNames);
+      } catch (parseError) {
+        console.error('Error parsing selected apps:', parseError);
+      }
+    } catch (error) {
+      console.error('Error in app usage monitoring:', error);
+    }
+  };
+
+  useEffect(() => {
+    let isServiceStarted = false;
+
+    const startForegroundService = async () => {
+      try {
+        if (isServiceStarted) return;
+
+        // Check if service is already running
+        const isRunning = await ReactNativeForegroundService.is_running();
+
+        if (!isRunning) {
+          await ReactNativeForegroundService.start({
+            id: 1244,
+            title: 'QuickBreak',
+            message: 'Monitoring app usage...',
+            icon: 'ic_launcher',
+            importance: 'high',
+            visibility: 'public',
+            color: '#1F7B55',
+            setOnlyAlertOnce: true,
+            ServiceType: 'dataSync',
+          });
+        }
+
+        isServiceStarted = true;
+
+        // Add monitoring tasks regardless of has_task check to ensure they are registered
+        ReactNativeForegroundService.add_task(() => monitorAppUsage(), {
+          delay: 5000,
+          onLoop: true,
+          taskId: 'app_usage_monitor',
+          onError: error => console.error('App monitoring task error:', error),
+        });
+
+        ReactNativeForegroundService.add_task(() => checkMidnightReset(), {
+          delay: 60000,
+          onLoop: true,
+          taskId: 'daily_reset',
+          onError: error => console.error('Daily reset task error:', error),
+        });
+      } catch (error) {
+        console.error('Error starting foreground service:', error);
+        isServiceStarted = false;
+      }
+    };
+
+    const checkMidnightReset = async () => {
+      try {
+        const now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+          await safeSetItem(STORAGE_KEYS.COUNTER, '0');
+          await checkForegroundApp([]);
+        }
+      } catch (error) {
+        console.error('Error in midnight reset:', error);
+      }
+    };
+
+    startForegroundService();
+
+    // Cleanup function
+    return () => {
+      if (isServiceStarted) {
+        ReactNativeForegroundService.remove_task('app_usage_monitor');
+        ReactNativeForegroundService.remove_task('daily_reset');
+        ReactNativeForegroundService.stop();
+        isServiceStarted = false;
+      }
+    };
+  }, []);
+
+  // Refactor the updateBlockedApps function to use the extractPackageNames helper
   useEffect(() => {
     const updateBlockedApps = async () => {
       try {
-        // Remove or comment out this log to reduce console spam
-        // console.log('Current selectedApps in updateBlockedApps:', selectedApps);
-
         // Ensure we have valid selected apps
         if (
           !selectedApps ||
           !Array.isArray(selectedApps) ||
           selectedApps.length === 0
         ) {
-          // console.log('No apps selected for blocking');
           await AppBlocker.setBlockedApps([]);
           return;
         }
 
-        // Extract and validate package names
-        const validPackageNames = [];
-        const mappedApps = [];
-
-        for (const app of selectedApps) {
-          if (typeof app === 'string') {
-            validPackageNames.push(app);
-            mappedApps.push({
-              packageName: app,
-              appName: getAppName(app),
-            });
-          } else if (app && typeof app === 'object' && app.packageName) {
-            validPackageNames.push(app.packageName);
-            mappedApps.push({
-              packageName: app.packageName,
-              appName: app.appName || getAppName(app.packageName),
-            });
-          }
-        }
-
-        // console.log('Mapped apps for blocking:', mappedApps);
+        // Use helper function to extract package names
+        const validPackageNames = extractPackageNames(selectedApps);
+        
+        // Create mapped apps for additional info if needed
+        const mappedApps = validPackageNames.map(packageName => ({
+          packageName,
+          appName: getAppName(packageName)
+        }));
 
         if (validPackageNames.length > 0) {
-          console.log('Setting blocked apps package names:', validPackageNames);
           await AppBlocker.setBlockedApps(validPackageNames);
         } else {
-          // console.log('No valid package names to block after processing');
           await AppBlocker.setBlockedApps([]);
         }
       } catch (error) {
@@ -394,296 +580,6 @@ const DashBoard = ({navigation}) => {
     };
     fetchData();
   }, []);
-  useEffect(() => {
-    let isServiceStarted = false;
-
-    const startForegroundService = async () => {
-      try {
-        if (isServiceStarted) return;
-
-        console.log('Starting foreground service...');
-        // Check if service is already running
-        const isRunning = await ReactNativeForegroundService.is_running();
-
-        if (!isRunning) {
-          await ReactNativeForegroundService.start({
-            id: 1244,
-            title: 'QuickBreak',
-            message: 'Monitoring app usage...',
-            icon: 'ic_launcher',
-            importance: 'high',
-            visibility: 'public',
-            color: '#1F7B55',
-            setOnlyAlertOnce: true,
-            ServiceType: 'dataSync',
-          });
-        }
-
-        isServiceStarted = true;
-        console.log('Foreground service started successfully');
-
-        // App monitoring task
-        try {
-          // Check if has_task function exists
-          const hasTaskFunction =
-            typeof ReactNativeForegroundService.has_task === 'function';
-
-          // Add app monitoring task if it doesn't exist or if we can't check
-          if (
-            !hasTaskFunction ||
-            !(await ReactNativeForegroundService.has_task('app_usage_monitor'))
-          ) {
-            ReactNativeForegroundService.add_task(() => monitorAppUsage(), {
-              delay: 5000,
-              onLoop: true,
-              taskId: 'app_usage_monitor',
-              onError: error =>
-                console.error('App monitoring task error:', error),
-            });
-          }
-
-          // Add daily reset task if it doesn't exist or if we can't check
-          if (
-            !hasTaskFunction ||
-            !(await ReactNativeForegroundService.has_task('daily_reset'))
-          ) {
-            ReactNativeForegroundService.add_task(() => checkMidnightReset(), {
-              delay: 60000,
-              onLoop: true,
-              taskId: 'daily_reset',
-              onError: error => console.error('Daily reset task error:', error),
-            });
-          }
-        } catch (error) {
-          console.log(
-            'Error checking or adding tasks, adding them anyway:',
-            error,
-          );
-
-          // Add tasks anyway as fallback
-          ReactNativeForegroundService.add_task(() => monitorAppUsage(), {
-            delay: 5000,
-            onLoop: true,
-            taskId: 'app_usage_monitor',
-            onError: error =>
-              console.error('App monitoring task error:', error),
-          });
-
-          ReactNativeForegroundService.add_task(() => checkMidnightReset(), {
-            delay: 60000,
-            onLoop: true,
-            taskId: 'daily_reset',
-            onError: error => console.error('Daily reset task error:', error),
-          });
-        }
-      } catch (error) {
-        console.error('Error starting foreground service:', error);
-        isServiceStarted = false;
-      }
-    };
-
-    const monitorAppUsage = async () => {
-      try {
-        const storedSelectedApps = await safeGetItem(
-          STORAGE_KEYS.SELECTED_APPS,
-        );
-        if (!storedSelectedApps) {
-          console.log('No stored selected apps for monitoring');
-          return;
-        }
-
-        let packageNames = [];
-        try {
-          // Parse stored selected apps
-          const parsedSelectedApps = JSON.parse(storedSelectedApps);
-          // Remove or comment out this log to reduce console spam
-          // console.log('Monitoring parsed apps:', parsedSelectedApps);
-
-          if (
-            !Array.isArray(parsedSelectedApps) ||
-            parsedSelectedApps.length === 0
-          ) {
-            console.log('No valid selected apps to monitor - empty array');
-            return;
-          }
-
-          // Extract package names directly
-          for (const app of parsedSelectedApps) {
-            if (typeof app === 'string') {
-              packageNames.push(app);
-            } else if (app && typeof app === 'object' && app.packageName) {
-              packageNames.push(app.packageName);
-            }
-          }
-
-          if (packageNames.length === 0) {
-            console.log('No valid package names extracted for monitoring');
-            return;
-          }
-
-          // Remove or comment out this log to reduce console spam
-          // console.log('Monitoring package names:', packageNames);
-          await checkForegroundApp(packageNames);
-        } catch (parseError) {
-          console.error(
-            'Error parsing selected apps in monitoring task:',
-            parseError,
-          );
-        }
-      } catch (error) {
-        console.error('Error in app usage monitoring:', error);
-      }
-    };
-
-    const checkMidnightReset = async () => {
-      try {
-        const now = new Date();
-        if (now.getHours() === 0 && now.getMinutes() === 0) {
-          console.log('Performing midnight reset...');
-          await safeSetItem(STORAGE_KEYS.COUNTER, '0');
-          await checkForegroundApp([]);
-        }
-      } catch (error) {
-        console.error('Error in midnight reset:', error);
-      }
-    };
-
-    startForegroundService();
-
-    // Cleanup function
-    return () => {
-      if (isServiceStarted) {
-        ReactNativeForegroundService.remove_task('app_usage_monitor');
-        ReactNativeForegroundService.remove_task('daily_reset');
-        ReactNativeForegroundService.stop();
-        isServiceStarted = false;
-      }
-    };
-  }, []);
-
-  // Function to check foreground app
-  const checkForegroundApp = async selectedApps => {
-    try {
-      // Ensure selectedApps is an array and extract package names
-      const packageNames = [];
-
-      if (Array.isArray(selectedApps)) {
-        for (const app of selectedApps) {
-          if (typeof app === 'string') {
-            packageNames.push(app);
-          } else if (app && typeof app === 'object' && app.packageName) {
-            packageNames.push(app.packageName);
-          }
-        }
-      }
-
-      // If no valid apps, exit early
-      if (packageNames.length === 0) {
-        console.log('No valid package names to monitor in checkForegroundApp');
-        return;
-      }
-
-      // Check if the task is already running
-      let isTaskRunning = await safeGetItem(STORAGE_KEYS.IS_TASK_RUNNING);
-      if (isTaskRunning === 'true') {
-        console.log('Task is already running.');
-        return;
-      }
-
-      console.log('Checking foreground app...');
-      console.log('Package names to check:', packageNames);
-
-      // Set flag to indicate the task is running
-      await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'true');
-
-      // Get current foreground app
-      let foregroundApp = await ForegroundAppDetector.getForegroundApp();
-      console.log(`Current foreground app: ${foregroundApp || 'none'}`);
-
-      if (!foregroundApp) {
-        console.log('No foreground app detected');
-        await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-        return;
-      }
-
-      // Retrieve counter from AsyncStorage
-      const counterStr = (await safeGetItem(STORAGE_KEYS.COUNTER)) || '0';
-      let counter = parseInt(counterStr);
-      const totalMinutesStr =
-        (await safeGetItem(STORAGE_KEYS.TOTAL_MINUTES)) || '0';
-      const totalMinutes = parseInt(totalMinutesStr);
-
-      console.log('Total minutes limit:', totalMinutes);
-      const useTime = totalMinutes * 60; // Convert minutes to seconds
-      const reminderTime = 15 * 60; // 15 minutes in seconds
-
-      // Check if foreground app is in the list of apps to block
-      const shouldBlock = packageNames.includes(foregroundApp);
-
-      if (shouldBlock) {
-        console.log('Detected app to block:', foregroundApp);
-
-        const interval = setInterval(async () => {
-          try {
-            // Check if app is still in foreground
-            foregroundApp = await ForegroundAppDetector.getForegroundApp();
-
-            if (!foregroundApp || !packageNames.includes(foregroundApp)) {
-              console.log('App no longer in focus or not in block list');
-              clearInterval(interval);
-              await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-              return;
-            }
-
-            if (counter >= useTime) {
-              console.log('Usage time exceeded, blocking app.');
-              clearInterval(interval);
-              await AppBlocker.setBlockedApps(packageNames);
-              await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-              return;
-            }
-
-            counter++;
-            console.log('Usage count:', counter);
-            await safeSetItem(STORAGE_KEYS.COUNTER, counter.toString());
-
-            if (counter === useTime - reminderTime) {
-              console.log('Sending reminder notification');
-              await ForegroundAppDetector.bringToForeground();
-              navigation.navigate(NAVIGATION.SCREENS.REMINDER_PAGE);
-            }
-          } catch (error) {
-            console.error('Error in monitoring interval:', error);
-            clearInterval(interval);
-            await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-          }
-        }, 1000);
-      } else {
-        console.log('Current app is not in block list');
-        await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-      }
-    } catch (error) {
-      console.error('Error in checkForegroundApp:', error);
-      await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-    }
-  };
-
-  const navToSeeMore = () => {
-    navigation.navigate(NAVIGATION.SCREENS.ANALYTICS);
-  };
-
-  const navToSettings = () => {
-    navigation.navigate(NAVIGATION.SCREENS.SETTINGS);
-  };
-  const navtoanalytics = () => {
-    navigation.navigate(NAVIGATION.SCREENS.ANALYTICS);
-  };
-  const navtovip = () => {
-    navigation.navigate(NAVIGATION.SCREENS.VIP);
-  };
-  const navtoapplists = () => {
-    navigation.navigate(NAVIGATION.SCREENS.APP_LIST);
-  };
 
   const getIcon = packageName => {
     if (!apps || !Array.isArray(apps)) return null;
@@ -982,9 +878,7 @@ const DashBoard = ({navigation}) => {
               </Text>
               <TouchableOpacity
                 style={styles.addAppContainer}
-                onPress={() =>
-                  navigation.navigate(NAVIGATION.SCREENS.APP_LIST)
-                }>
+                onPress={() => navigateTo(NAVIGATION.SCREENS.APP_LIST)}>
                 <View style={styles.addButton}>
                   <Ionicons name="add" size={wp('5%')} color="#FFFFFF" />
                   <Text style={styles.addButtonText}>Add</Text>
@@ -1044,9 +938,7 @@ const DashBoard = ({navigation}) => {
                   {selectedApps.length > 5 && (
                     <TouchableOpacity
                       style={styles.showMoreContainer}
-                      onPress={() =>
-                        navigation.navigate(NAVIGATION.SCREENS.APP_LIST)
-                      }>
+                      onPress={() => navigateTo(NAVIGATION.SCREENS.APP_LIST)}>
                       <Text style={styles.showMoreText}>Show More</Text>
                       <Ionicons
                         name="chevron-forward"
