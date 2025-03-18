@@ -24,6 +24,7 @@ import { LinearGradient } from "react-native-linear-gradient";
 const { width, height } = Dimensions.get("screen")
 import { MaterialIcons, MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { COLORS, FONTS, NAVIGATION, STORAGE_KEYS } from '../constants/theme';
 
 
 export const Setting = ({ navigation }) => {
@@ -80,8 +81,8 @@ export const Setting = ({ navigation }) => {
   };
 
   const navtodash = () => {
-    navigation.navigate("DashBoard")
-  }
+    navigation.navigate(NAVIGATION.SCREENS.DASHBOARD);
+  };
 
 
 
@@ -161,7 +162,7 @@ export const Setting = ({ navigation }) => {
           </View>
         </View>
 
-        <TouchableOpacity onPress={() => { navigation.navigate("PermissionSetting") }}>
+        <TouchableOpacity onPress={() => { navigation.navigate(NAVIGATION.SCREENS.PERMISSION_SETTING) }}>
           <View
             style={{
               display: "flex",
@@ -484,12 +485,12 @@ export const Setting = ({ navigation }) => {
               marginHorizontal: wp('5%'),
             }}
           />
-          <TouchableOpacity onPress={() => { navigation.navigate("DashBoard") }}>
+          <TouchableOpacity onPress={() => { navigation.navigate(NAVIGATION.SCREENS.DASHBOARD) }}>
             <Ionicons name="compass" size={wp('12%')} color="white" />
           </TouchableOpacity>
 
 
-          <TouchableOpacity onPress={() => { navigation.navigate("AnalyticsPage") }} >
+          <TouchableOpacity onPress={() => { navigation.navigate(NAVIGATION.SCREENS.ANALYTICS) }} >
             <View
               style={[
                 styles.footerLogo,
@@ -509,7 +510,7 @@ export const Setting = ({ navigation }) => {
               />
             </View>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { navigation.navigate("FocusSession") }}>
+          <TouchableOpacity onPress={() => { navigation.navigate(NAVIGATION.SCREENS.FOCUS_SESSION) }}>
             <View style={[styles.footerLogo]} >
             <Image
                 source={require('../../assets/images/hourglass.png')} // Replace with your image path

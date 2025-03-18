@@ -27,11 +27,12 @@ class MainActivity : ReactActivity() {
       override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val serviceIntent = Intent(this, AppForegroundService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
+        // Commenting out native foreground service start to avoid conflict with React Native foreground service
+        // val serviceIntent = Intent(this, AppForegroundService::class.java)
+        // if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        //     startForegroundService(serviceIntent)
+        // } else {
+        //     startService(serviceIntent)
+        // }
     }
 }

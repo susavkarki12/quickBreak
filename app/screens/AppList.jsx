@@ -6,14 +6,29 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    Image
+    Image,
+    SafeAreaView,
+    StatusBar
 } from "react-native";
 import { NativeModules } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import LinearGradient from "react-native-linear-gradient";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const { RNAndroidInstalledApps, AppBlocker } = NativeModules;
+import { Ionicons } from '@expo/vector-icons';
+import {
+    COLORS,
+    FONTS,
+    FONT_SIZES,
+    SPACING,
+    VERTICAL_SPACING,
+    BORDER_RADIUS,
+    SHADOWS,
+    COMMON_STYLES,
+    APP_CONSTANTS,
+    NAVIGATION,
+    STORAGE_KEYS
+} from '../constants/theme';
+import BottomNavBar from '../components/BottomNavBar';
 
 const AppList = ({ navigation }) => {
     const [apps, setApps] = useState([]);
@@ -24,20 +39,38 @@ const AppList = ({ navigation }) => {
     useEffect(() => {
         const getStoredApps = async () => {
             try {
-                const storedApps = await AsyncStorage.getItem('apps');
-                const storedSelectedApps = await AsyncStorage.getItem('selectedApps');
+                const storedApps = await AsyncStorage.getItem(STORAGE_KEYS.APPS_LIST);
+                console.log("storedApps", storedApps)
+                const storedSelectedApps = await AsyncStorage.getItem(STORAGE_KEYS.SELECTED_APPS);
+                console.log("storedSelectedApps", storedSelectedApps)
 
                 if (storedApps) {
                     const parsedApps = JSON.parse(storedApps);
                     setApps(parsedApps);
                     setFilteredApps(sortApps(parsedApps, JSON.parse(storedSelectedApps) || []));
+                }else{
+                    NativeModules.RNAndroidInstalledApps.getNonSystemApps()
+                    .then((appList) => {
+                        const transformedApps = appList.map((app) => ({
+                            appName: app.appName,
+                            packageName: app.packageName,
+                            icon: app.icon
+                        }));
+                        setApps(transformedApps);
+                        setFilteredApps(transformedApps);
+                        AsyncStorage.setItem(STORAGE_KEYS.APPS_LIST, JSON.stringify(transformedApps));
+                    })
+                    .catch((error) => {
+                        console.error("Failed to get non-system apps", error);
+                    });
                 }
-
+                
                 if (storedSelectedApps) {
-                    setSelectedApps(JSON.parse(storedSelectedApps));
+                    const parsedSelectedApps = JSON.parse(storedSelectedApps);
+                    setSelectedApps(parsedSelectedApps);
                 }
             } catch (error) {
-                console.error("Error retrieving stored data:", error);
+                console.error("Error retrieving stored apps:", error);
             }
         };
 
@@ -78,16 +111,25 @@ const AppList = ({ navigation }) => {
 
     // Toggle app selection and update sorting
     const toggleSelection = async (packageName) => {
-        setSelectedApps((prevSelected) => {
-            const updatedSelection = prevSelected.includes(packageName)
-                ? prevSelected.filter(pkg => pkg !== packageName)
-                : [...prevSelected, packageName];
-
-            AsyncStorage.setItem('selectedApps', JSON.stringify(updatedSelection));
-
-            setFilteredApps(sortApps(apps, updatedSelection)); // Re-sort apps after selection change
-            return updatedSelection;
-        });
+        let newSelectedApps;
+        if (selectedApps.includes(packageName)) {
+            newSelectedApps = selectedApps.filter(pkg => pkg !== packageName);
+        } else {
+            // Only allow selecting up to APP_CONSTANTS.MAX_APPS_TO_SELECT apps
+            if (selectedApps.length >= APP_CONSTANTS.MAX_APPS_TO_SELECT) {
+                alert(`You can only select up to ${APP_CONSTANTS.MAX_APPS_TO_SELECT} apps`);
+                return;
+            }
+            newSelectedApps = [...selectedApps, packageName];
+        }
+        setSelectedApps(newSelectedApps);
+        // Re-sort apps after selection change
+        setFilteredApps(sortApps(apps, newSelectedApps));
+        try {
+            await AsyncStorage.setItem(STORAGE_KEYS.SELECTED_APPS, JSON.stringify(newSelectedApps));
+        } catch (error) {
+            console.error("Error saving selected apps:", error);
+        }
     };
 
     // Render each app item
@@ -100,144 +142,255 @@ const AppList = ({ navigation }) => {
             >
                 <View style={[styles.radioCircle, isSelected && styles.selectedCircle]} />
                 <View style={{ paddingHorizontal: wp("5%") }}>
-                    <Image
-                        source={{ uri: `data:image/png;base64,${item.icon}` }}
-                        style={styles.appIcon}
-                    />
+                    {item.icon ? (
+                        <Image
+                            source={{ uri: typeof item.icon === 'string' && item.icon.startsWith('data:') ? item.icon : `data:image/png;base64,${item.icon}` }}
+                            style={styles.appIcon}
+                        />
+                    ) : (
+                        <View style={[styles.appIcon, styles.noAppIcon]}>
+                            <Text style={styles.appIconText}>{item.appName ? item.appName.charAt(0) : '?'}</Text>
+                        </View>
+                    )}
                 </View>
-                <Text style={styles.appName}>{item.appName}</Text>
+                <Text style={styles.appName}>{item.appName || 'Unknown App'}</Text>
             </TouchableOpacity>
         );
     };
 
     const selectApps = async () => {
         try {
-            retrieveFromStrorage()
-            await AsyncStorage.setItem("hasSeenOnboarding", "true");
-            navigation.replace("LastOnboardingScreen");
+            console.log("Saving selected apps (package names):", selectedApps);
+            
+            // First save the plain package name array for compatibility
+            await AsyncStorage.setItem(STORAGE_KEYS.SELECTED_APPS, JSON.stringify(selectedApps));
+            
+            // Log success and navigate back
+            console.log("Selected apps stored successfully:", selectedApps);
+            navigation.navigate(NAVIGATION.SCREENS.DASHBOARD);
         } catch (error) {
-            console.error("Error saving selected apps:", error);
+            console.error("Error storing selected apps:", error);
         }
     };
 
     const retrieveFromStrorage = async () => {
-        await AsyncStorage.setItem('selectedApps', JSON.stringify(selectedApps));
-
-        const usageGoal = await AsyncStorage.getItem('usageGoal')
-        const reminderInterval = await AsyncStorage.getItem('reminderInterval')
-        const familiarity = await AsyncStorage.getItem('familiarity')
-        const creationDate = await AsyncStorage.getItem('creationDate')
-        const id = await AsyncStorage.getItem('unique_id')
-
-        console.log("usage", usageGoal, reminderInterval, familiarity, creationDate, id)
-
-    }
-
-    
+      try {
+        const usage = await AsyncStorage.getItem(STORAGE_KEYS.USAGE_GOAL)
+        const reminder = await AsyncStorage.getItem(STORAGE_KEYS.REMINDER_INTERVAL)
+        const familiarity = await AsyncStorage.getItem(STORAGE_KEYS.FAMILIARITY)
+        const date = await AsyncStorage.getItem(STORAGE_KEYS.CREATION_DATE)
+        const uid = await AsyncStorage.getItem(STORAGE_KEYS.UNIQUE_ID)
+        console.log("usage", usage, reminder, familiarity, date, uid)
+      } catch (e) {
+        console.log(e)
+      }
+    };
 
     const memoizedFilteredApps = useMemo(() => filteredApps, [filteredApps]); // Memoizing the filtered list
 
+    // Modified with a more helpful empty state
+    const EmptyListComponent = () => (
+        <View style={styles.emptyContainer}>
+            <Ionicons name="apps-outline" size={wp('15%')} color={COLORS.text.secondary} />
+            <Text style={styles.noAppsText}>
+                {searchText.length > 0 ? 'No apps found matching your search' : 'Loading apps...'}
+            </Text>
+            <Text style={styles.noAppsSubText}>
+                {searchText.length > 0 
+                    ? 'Try a different search term' 
+                    : 'Please wait while we retrieve your apps'}
+            </Text>
+        </View>
+    );
+
     return (
-        <View style={styles.container}>
-            <Text style={styles.header}>Select Apps</Text>
-            <TextInput
-                style={styles.searchBar}
-                placeholder="Search apps"
-                placeholderTextColor="#aaa"
-                value={searchText}
-                onChangeText={handleSearch}
-            />
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="default" />
+            
+            <View style={styles.headerContainer}>
+                <View style={styles.headerTopRow}>
+                    <TouchableOpacity 
+                        style={styles.backButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Ionicons name="chevron-back" size={24} color="#1f7b55" />
+                        <Text style={styles.backButtonText}>Back</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.header}>Select Apps</Text>
+                </View>
+                <Text style={styles.subHeader}>Choose apps to block during break time</Text>
+            </View>
+
+            <View style={styles.searchContainer}>
+                <Ionicons name="search" size={20} color="#666666" style={styles.searchIcon} />
+                <TextInput
+                    style={styles.searchBar}
+                    placeholder="Search apps"
+                    placeholderTextColor="#666666"
+                    value={searchText}
+                    onChangeText={handleSearch}
+                />
+            </View>
+
             <FlatList
                 data={memoizedFilteredApps}
                 keyExtractor={(item) => item.packageName}
                 renderItem={renderAppItem}
-                ListEmptyComponent={<Text style={styles.noAppsText}>No apps found</Text>}
+                ListEmptyComponent={EmptyListComponent}
+                contentContainerStyle={styles.listContainer}
             />
-            <View style={{ paddingTop: 10 }}>
-                <TouchableOpacity onPress={selectApps}>
+
+            <View style={styles.footer}>
+                <TouchableOpacity onPress={selectApps} style={styles.selectButton}>
                     <LinearGradient
-                        colors={["#ff3131", "#ff914d"]}
-                        start={{ x: 0, y: 1 }}
+                        colors={["#1f7b55", "#2a8f6c"]}
+                        start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
-                        style={styles.linearGrad}
+                        style={styles.gradientButton}
                     >
-                        <Text style={styles.linearText}>Select Apps</Text>
+                        <Text style={styles.buttonText}>Select Apps</Text>
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
-        </View>
+
+            <BottomNavBar navigation={navigation} currentScreen={NAVIGATION.SCREENS.APP_LIST} isDarkMode={false} />
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#f8f9fa",
-        padding: 16,
+    container: COMMON_STYLES.container,
+    headerContainer: {
+        paddingHorizontal: SPACING.xs,
+        paddingTop: VERTICAL_SPACING.sm,
+        marginBottom: VERTICAL_SPACING.sm,
+    },
+    headerTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        position: 'relative',
+        marginBottom: VERTICAL_SPACING.xs,
     },
     header: {
-        fontSize: 20,
-        fontFamily: "TTHoves",
-        marginBottom: 16,
+        ...COMMON_STYLES.header,
+        position: 'absolute',
+        left: 0,
+        right: 0,
+    },
+    subHeader: COMMON_STYLES.subHeader,
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primaryLight,
+        borderRadius: BORDER_RADIUS.md,
+        marginHorizontal: SPACING.lg,
+        marginBottom: VERTICAL_SPACING.sm,
+        paddingHorizontal: SPACING.md,
+    },
+    searchIcon: {
+        marginRight: SPACING.xs,
+        color: COLORS.text.secondary,
     },
     searchBar: {
-        height: 40,
-        backgroundColor: "#fff",
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        marginBottom: 16,
-        elevation: 2,
+        flex: 1,
+        height: hp('6%'),
+        fontSize: FONT_SIZES.body,
+        fontFamily: FONTS.regular,
+        color: COLORS.text.dark,
+    },
+    listContainer: {
+        paddingHorizontal: SPACING.lg,
+        paddingBottom: VERTICAL_SPACING.sm,
     },
     appItem: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 12,
-        backgroundColor: "#fff",
-        borderRadius: 8,
-        marginBottom: 8,
-        elevation: 2,
-        justifyContent: "space-between",
+        backgroundColor: COLORS.background.primary,
+        borderRadius: BORDER_RADIUS.md,
+        padding: SPACING.sm,
+        marginBottom: VERTICAL_SPACING.xs,
+        ...SHADOWS.light,
+        borderWidth: 1,
+        borderColor: COLORS.border.light,
     },
     selectedApp: {
-        backgroundColor: "#ffebcc",
+        borderColor: COLORS.primary,
     },
     appName: {
-        paddingLeft: 6,
         flex: 1,
-        fontSize: wp("4.5%"),
-        fontFamily: "TTHoves",
+        fontSize: FONT_SIZES.h3,
+        fontFamily: FONTS.medium,
+        color: COLORS.text.dark,
+        marginLeft: SPACING.sm,
     },
     appIcon: {
-        height: hp("5%"),
-        width: wp("10%"),
+        width: wp('12%'),
+        height: wp('12%'),
+        borderRadius: BORDER_RADIUS.sm,
     },
     radioCircle: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: wp('5%'),
+        height: wp('5%'),
+        borderRadius: wp('2.5%'),
         borderWidth: 2,
-        borderColor: "#6c757d",
+        borderColor: COLORS.text.secondary,
     },
     selectedCircle: {
-        backgroundColor: "#1F7B55",
-        borderColor: "#1F7B55",
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: VERTICAL_SPACING.xl,
     },
     noAppsText: {
-        textAlign: "center",
-        marginTop: 20,
-        color: "#6c757d",
+        fontSize: FONT_SIZES.h3,
+        fontFamily: FONTS.regular,
+        color: COLORS.text.secondary,
+        marginTop: VERTICAL_SPACING.sm,
     },
-    linearText: {
-        fontFamily: "TTHoves",
-        color: "white",
-        alignSelf: "center",
-        fontSize: hp("4%"),
-        marginVertical: hp("1%"),
+    noAppsSubText: {
+        fontSize: FONT_SIZES.body,
+        fontFamily: FONTS.regular,
+        color: COLORS.text.secondary,
+        marginTop: VERTICAL_SPACING.sm,
     },
-    linearGrad: {
-        width: wp("88%"),
-        alignSelf: "center",
-        borderRadius: 30,
+    footer: {
+        padding: SPACING.md,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border.light,
+    },
+    selectButton: {
+        width: '100%',
+    },
+    gradientButton: {
+        ...COMMON_STYLES.button,
+    },
+    buttonText: COMMON_STYLES.buttonText,
+    backButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: VERTICAL_SPACING.xs,
+        borderRadius: BORDER_RADIUS.md,
+        zIndex: 1,
+    },
+    backButtonText: {
+        color: COLORS.primary,
+        fontSize: FONT_SIZES.body,
+        fontFamily: FONTS.medium,
+        marginLeft: SPACING.xs,
+    },
+    noAppIcon: {
+        backgroundColor: COLORS.background.primary,
+        borderRadius: BORDER_RADIUS.sm,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    appIconText: {
+        fontSize: FONT_SIZES.h3,
+        fontFamily: FONTS.medium,
+        color: COLORS.text.dark,
     },
 });
 

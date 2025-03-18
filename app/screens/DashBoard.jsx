@@ -5,36 +5,41 @@ import {
   StatusBar,
   StyleSheet,
   Image,
-  Dimensions,
   TouchableOpacity,
   FlatList,
   NativeModules, Alert, ScrollView, Modal
 } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
-import { LinearGradient } from 'react-native-linear-gradient';
-import { BarChart } from 'react-native-gifted-charts';
 const rgba = (r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import {
-  FontAwesome5,
   FontAwesome,
-  Fontisto,
   Ionicons,
-  MaterialIcons,
-  MaterialCommunityIcons,
 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import getWeeklyUsage from '../Service/WeeklyStat';
 import ReactNativeForegroundService from "@supersami/rn-foreground-service";
+import BottomNavBar from '../components/BottomNavBar';
+import Header from '../components/Header';
+import {
+  COLORS,
+  FONTS,
+  FONT_SIZES,
+  SPACING,
+  VERTICAL_SPACING,
+  BORDER_RADIUS,
+  SHADOWS,
+  STORAGE_KEYS,
+  NAVIGATION
+} from '../constants/theme';
+import AppList from './AppList';
 const { AppBlocker, ForegroundAppDetector } = NativeModules;
 
-
-
 const DashBoard = ({ navigation }) => {
-  const [app, setApps] = useState([])
+  const [apps, setApps] = useState([])
   const [selectedApps, setSelectedApps] = useState([]);
   const [data, setWeeklyData] = useState([]);
   const [usage, setUsage] = useState(null)
@@ -46,6 +51,84 @@ const DashBoard = ({ navigation }) => {
   const [selectedMinute, setSelectedMinute] = useState(null);
   const [hours, setHours] = useState("")
   const [minutes, setMinutes] = useState("")
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const toggleTheme = async () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    try {
+      await safeSetItem(STORAGE_KEYS.THEME_MODE, JSON.stringify(newMode));
+    } catch (error) {
+      console.log('Error saving theme preference:', error);
+    }
+  };
+
+  // Handle hour selection
+  const handleSelectHour = (hour) => {
+    setSelectedHour(hour);
+  };
+
+  // Handle minute selection
+  const handleSelectMinute = (minute) => {
+    setSelectedMinute(minute);
+  };
+
+  const getThemeColors = () => {
+    return {
+      background: isDarkMode ? COLORS.background.dark : COLORS.background.primary,
+      text: isDarkMode ? COLORS.text.darkMode.primary : COLORS.text.primary,
+      secondaryText: isDarkMode ? COLORS.text.darkMode.secondary : COLORS.text.secondary,
+      cardBackground: isDarkMode ? COLORS.background.darkSecondary : COLORS.background.secondary,
+      border: isDarkMode ? COLORS.border.dark : COLORS.border.light,
+    };
+  };
+
+  const theme = getThemeColors();
+
+  // Helper function to safely use AsyncStorage with string keys
+  const safeGetItem = async (key) => {
+    if (typeof key !== 'string') {
+      console.warn(`Invalid AsyncStorage key: ${key}`);
+      return null;
+    }
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch (error) {
+      console.error(`Error getting AsyncStorage item for key: ${key}`, error);
+      return null;
+    }
+  };
+
+  const safeSetItem = async (key, value) => {
+    if (typeof key !== 'string') {
+      console.error(`Invalid AsyncStorage key: ${key}`);
+      return false;
+    }
+    try {
+      await AsyncStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      console.error(`Error setting AsyncStorage item for key: ${key}`, error);
+      return false;
+    }
+  };
+
+  // Load theme preference
+  useEffect(() => {
+    const loadThemePreference = async () => {
+      try {
+        const savedTheme = await safeGetItem(STORAGE_KEYS.THEME_MODE);
+        if (savedTheme !== null) {
+          setIsDarkMode(JSON.parse(savedTheme));
+        }
+      } catch (error) {
+        console.log('Error loading theme preference:', error);
+      }
+    };
+    
+    loadThemePreference();
+  }, []);
+
   // Format time display
   const formatTime = () => {
     return `${selectedHour}:${selectedMinute.toString().padStart(2, "0")}`;
@@ -62,16 +145,17 @@ const DashBoard = ({ navigation }) => {
     console.log("Total minutes: ", totalMinutes);
 
     // Optionally, save it to AsyncStorage
-    AsyncStorage.setItem("totalMinutes", JSON.stringify(totalMinutes));
+    await safeSetItem(STORAGE_KEYS.TOTAL_MINUTES, JSON.stringify(totalMinutes));
     setIsVisible(false);
   };
+  
 
   // 🔹 Load data from AsyncStorage when the app starts
 useEffect(() => {
   const loadData = async () => {
     try {
-      const savedMinutes = await AsyncStorage.getItem("minutes");
-      const savedHours = await AsyncStorage.getItem("hours");
+      const savedMinutes = await safeGetItem(STORAGE_KEYS.MINUTES);
+      const savedHours = await safeGetItem(STORAGE_KEYS.HOURS);
 
       if (savedMinutes !== null) {
         setSelectedMinute(JSON.parse(savedMinutes));
@@ -94,11 +178,11 @@ useEffect(() => {
   const saveData = async () => {
     try {
       if (selectedHour !== null) {
-        await AsyncStorage.setItem("hours", JSON.stringify(selectedHour));
+        await safeSetItem(STORAGE_KEYS.HOURS, JSON.stringify(selectedHour));
         setHours(selectedHour);
       }
       if (selectedMinute !== null) {
-        await AsyncStorage.setItem("minutes", JSON.stringify(selectedMinute));
+        await safeSetItem(STORAGE_KEYS.MINUTES, JSON.stringify(selectedMinute));
         setMinutes(selectedMinute);
       }
     } catch (error) {
@@ -110,28 +194,52 @@ useEffect(() => {
   useEffect(() => {
     const getStoredData = async () => {
       try {
-        const storedApps = await AsyncStorage.getItem('apps');
-        const storedSelectedApps = await AsyncStorage.getItem('selectedApps');
+        const storedApps = await safeGetItem(STORAGE_KEYS.APPS_LIST);
+        const storedSelectedApps = await safeGetItem(STORAGE_KEYS.SELECTED_APPS);
 
         if (storedApps) {
-          const parsedApps = JSON.parse(storedApps).map((app, index) => ({
-            id: index + 1, // Assigning unique ID
-            appName: app.appName,
-            packageName: app.packageName,
-            icon: app.icon
-          }));
+          const parsedApps = JSON.parse(storedApps)
+            .filter(app => app && app.packageName) // Filter out null/invalid entries
+            .map((app, index) => ({
+              id: index + 1,
+              appName: app.appName || 'Unknown App',
+              packageName: app.packageName,
+              icon: app.icon || null
+            }));
           setApps(parsedApps);
         }
 
         if (storedSelectedApps) {
-          const parsedSelectedApps = JSON.parse(storedSelectedApps).map((pkg, index) => ({
-            id: index + 1, // Assigning unique ID
-            packageName: pkg
-          }));
+          const parsedSelectedApps = JSON.parse(storedSelectedApps)
+            .filter(pkg => pkg) // Filter out null entries
+            .map((pkg, index) => {
+              // Handle both string and object formats
+              if (typeof pkg === 'string') {
+                return {
+                  id: index + 1,
+                  packageName: pkg,
+                  appName: getAppName(pkg),
+                  icon: getIcon(pkg)
+                };
+              }
+              return {
+                id: index + 1,
+                packageName: pkg.packageName,
+                appName: pkg.appName || getAppName(pkg.packageName),
+                icon: pkg.icon || getIcon(pkg.packageName)
+              };
+            })
+            .filter(app => app.packageName); // Final filter to ensure packageName exists
+
+          console.log('Parsed selected apps:', parsedSelectedApps);
           setSelectedApps(parsedSelectedApps);
+        } else {
+          setSelectedApps([]); // Set empty array if no stored apps
         }
       } catch (error) {
         console.error("Error retrieving stored apps:", error);
+        setApps([]);
+        setSelectedApps([]);
       }
     };
 
@@ -149,648 +257,941 @@ useEffect(() => {
 
 
   useEffect(() => {
-    const appsToBlock = selectedApps.length > 0 ? selectedApps : ["com.dummy.placeholder"];
-    AppBlocker.setBlockedApps(appsToBlock);
-  }, []);
+    const updateBlockedApps = async () => {
+      try {
+        console.log("Current selectedApps state:", selectedApps);
+        
+        // Ensure we have valid selected apps
+        if (!selectedApps || !Array.isArray(selectedApps) || selectedApps.length === 0) {
+          console.log("No apps selected for blocking");
+          await AppBlocker.setBlockedApps([]);
+          return;
+        }
+
+        // Extract and validate package names
+        const validPackageNames = [];
+        
+        for (const app of selectedApps) {
+          if (typeof app === 'string') {
+            validPackageNames.push(app);
+          } else if (app && typeof app === 'object' && app.packageName) {
+            validPackageNames.push(app.packageName);
+          }
+        }
+
+        if (validPackageNames.length > 0) {
+          console.log("Setting blocked apps:", validPackageNames);
+          await AppBlocker.setBlockedApps(validPackageNames);
+        } else {
+          console.log("No valid package names to block after processing");
+          await AppBlocker.setBlockedApps([]);
+        }
+      } catch (error) {
+        console.error("Error setting blocked apps:", error);
+      }
+    };
+
+    updateBlockedApps();
+  }, [selectedApps]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const usageGoal = await AsyncStorage.getItem('usageGoal')
-      const reminderInterval = await AsyncStorage.getItem('reminderInterval')
-      const usage = parseInt(usageGoal.match(/\d+/)[0])
-      const reminder = parseInt(reminderInterval.match(/\d+/)[0])
-      setReminder(reminder)
-      setUsage(usage);
+      try {
+        const usageGoal = await safeGetItem(STORAGE_KEYS.USAGE_GOAL);
+        const reminderInterval = await safeGetItem(STORAGE_KEYS.REMINDER_INTERVAL);
+        
+        // Check if the data exists and has the right format
+        if (usageGoal && usageGoal.match(/\d+/)) {
+          const usage = parseInt(usageGoal.match(/\d+/)[0]);
+          setUsage(usage);
+        } else {
+          // Default fallback
+          setUsage(0);
+        }
+        
+        if (reminderInterval && reminderInterval.match(/\d+/)) {
+          const reminder = parseInt(reminderInterval.match(/\d+/)[0]);
+          setReminder(reminder);
+        } else {
+          // Default fallback
+          setReminder(0);
+        }
+      } catch (error) {
+        console.error("Error fetching usage data:", error);
+        // Set default values if there's an error
+        setUsage(0);
+        setReminder(0);
+      }
     }
     fetchData();
   }, []);
   useEffect(() => {
-    console.log("Starting foreground service...");
+    let isServiceStarted = false;
 
-    ReactNativeForegroundService.start({
-      id: 1244,
-      title: "Data Sync Service",
-      message: "Synchronizing data in the background...",
-      icon: "ic_launcher",
-      ongoing: true,
-      importance: "high",
-      visibility: "public",
-      color: "#FF5733",
-      setOnlyAlertOnce: true,
-      ServiceType: "dataSync",
-    })
-      .then(() => {
-        console.log("Foreground service started");
+    const startForegroundService = async () => {
+      try {
+        if (isServiceStarted) return;
 
-        // Foreground app monitoring task
-        ReactNativeForegroundService.add_task(
-          async () => {
-            try {
-              const storedSelectedApps = await AsyncStorage.getItem("selectedApps");
-              const selectedAppsList = storedSelectedApps ? JSON.parse(storedSelectedApps) : [];
-              console.log("Latest selected apps inside task:", selectedAppsList);
+        console.log("Starting foreground service...");
+        // Check if service is already running
+        const isRunning = await ReactNativeForegroundService.is_running();
+        
+        if (!isRunning) {
+          await ReactNativeForegroundService.start({
+            id: 1244,
+            title: "QuickBreak",
+            message: "Monitoring app usage...",
+            icon: "ic_launcher",
+            importance: "high",
+            visibility: "public",
+            color: "#1F7B55",
+            setOnlyAlertOnce: true,
+            ServiceType: "dataSync",
+          });
+        }
 
-              await checkForegroundApp(Array.isArray(selectedAppsList) ? selectedAppsList : []);
-            } catch (error) {
-              console.error("Error fetching selected apps from storage:", error);
-            }
-          },
-          {
-            delay: 5000, // Runs every 5 seconds
-            onLoop: true,
-            taskId: "app_usage_task",
-            onError: (e) => console.log("Task error:", e),
+        isServiceStarted = true;
+        console.log("Foreground service started successfully");
+
+        // App monitoring task
+        try {
+          // Check if has_task function exists
+          const hasTaskFunction = typeof ReactNativeForegroundService.has_task === 'function';
+          
+          // Add app monitoring task if it doesn't exist or if we can't check
+          if (!hasTaskFunction || !(await ReactNativeForegroundService.has_task("app_usage_monitor"))) {
+            ReactNativeForegroundService.add_task(
+              () => monitorAppUsage(),
+              {
+                delay: 5000,
+                onLoop: true,
+                taskId: "app_usage_monitor",
+                onError: (error) => console.error("App monitoring task error:", error),
+              }
+            );
           }
-        );
 
-        // Midnight reset task
-        ReactNativeForegroundService.add_task(
-          async () => {
-            const now = new Date();
-            if (now.getHours() === 0 && now.getMinutes() === 0) { // Midnight reset
-              console.log("Midnight reset: Counter set to 0, empty app list passed.");
-              counter = 0;
-              await AsyncStorage.setItem("counter", JSON.stringify(counter)); // Reset counter in storage
-              await checkForegroundApp([]); // Pass empty array
-            }
-          },
-          {
-            delay: 60000, // Check every minute
-            onLoop: true,
-            taskId: "midnight_reset_task",
-            onError: (e) => console.log("Midnight task error:", e),
+          // Add daily reset task if it doesn't exist or if we can't check
+          if (!hasTaskFunction || !(await ReactNativeForegroundService.has_task("daily_reset"))) {
+            ReactNativeForegroundService.add_task(
+              () => checkMidnightReset(),
+              {
+                delay: 60000,
+                onLoop: true,
+                taskId: "daily_reset",
+                onError: (error) => console.error("Daily reset task error:", error),
+              }
+            );
           }
-        );
-      })
-      .catch((err) => console.log("Error starting service:", err));
+        } catch (error) {
+          console.log("Error checking or adding tasks, adding them anyway:", error);
+          
+          // Add tasks anyway as fallback
+          ReactNativeForegroundService.add_task(
+            () => monitorAppUsage(),
+            {
+              delay: 5000,
+              onLoop: true,
+              taskId: "app_usage_monitor",
+              onError: (error) => console.error("App monitoring task error:", error),
+            }
+          );
+          
+          ReactNativeForegroundService.add_task(
+            () => checkMidnightReset(),
+            {
+              delay: 60000,
+              onLoop: true,
+              taskId: "daily_reset",
+              onError: (error) => console.error("Daily reset task error:", error),
+            }
+          );
+        }
+      } catch (error) {
+        console.error("Error starting foreground service:", error);
+        isServiceStarted = false;
+      }
+    };
+
+    const monitorAppUsage = async () => {
+      try {
+        const storedSelectedApps = await safeGetItem(STORAGE_KEYS.SELECTED_APPS);
+        if (!storedSelectedApps) {
+          console.log("No stored selected apps for monitoring");
+          return;
+        }
+
+        let packageNames = [];
+        try {
+          // Parse stored selected apps
+          const parsedSelectedApps = JSON.parse(storedSelectedApps);
+          console.log("Monitoring parsed apps:", parsedSelectedApps);
+          
+          if (!Array.isArray(parsedSelectedApps) || parsedSelectedApps.length === 0) {
+            console.log("No valid selected apps to monitor - empty array");
+            return;
+          }
+          
+          // Extract package names directly
+          for (const app of parsedSelectedApps) {
+            if (typeof app === 'string') {
+              packageNames.push(app);
+            } else if (app && typeof app === 'object' && app.packageName) {
+              packageNames.push(app.packageName);
+            }
+          }
+          
+          if (packageNames.length === 0) {
+            console.log("No valid package names extracted for monitoring");
+            return;
+          }
+          
+          console.log("Monitoring package names:", packageNames);
+          await checkForegroundApp(packageNames);
+        } catch (parseError) {
+          console.error("Error parsing selected apps in monitoring task:", parseError);
+        }
+      } catch (error) {
+        console.error("Error in app usage monitoring:", error);
+      }
+    };
+
+    const checkMidnightReset = async () => {
+      try {
+        const now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+          console.log("Performing midnight reset...");
+          await safeSetItem(STORAGE_KEYS.COUNTER, "0");
+          await checkForegroundApp([]);
+        }
+      } catch (error) {
+        console.error("Error in midnight reset:", error);
+      }
+    };
+
+    startForegroundService();
+
+    // Cleanup function
+    return () => {
+      if (isServiceStarted) {
+        ReactNativeForegroundService.remove_task("app_usage_monitor");
+        ReactNativeForegroundService.remove_task("daily_reset");
+        ReactNativeForegroundService.stop();
+        isServiceStarted = false;
+      }
+    };
   }, []);
 
   // Function to check foreground app
   const checkForegroundApp = async (selectedApps) => {
     try {
-      // Check if the task is already running
-      let isTaskRunning = await AsyncStorage.getItem("isTaskRunning");
+      // Ensure selectedApps is an array and extract package names
+      const packageNames = [];
+      
+      if (Array.isArray(selectedApps)) {
+        for (const app of selectedApps) {
+          if (typeof app === 'string') {
+            packageNames.push(app);
+          } else if (app && typeof app === 'object' && app.packageName) {
+            packageNames.push(app.packageName);
+          }
+        }
+      }
 
+      // If no valid apps, exit early
+      if (packageNames.length === 0) {
+        console.log("No valid package names to monitor in checkForegroundApp");
+        return;
+      }
+
+      // Check if the task is already running
+      let isTaskRunning = await safeGetItem(STORAGE_KEYS.IS_TASK_RUNNING);
       if (isTaskRunning === "true") {
         console.log("Task is already running.");
-        return; // Exit early to avoid running multiple instances
+        return;
       }
 
       console.log("Checking foreground app...");
-      console.log("Selected apps for blocking:", selectedApps);
+      console.log("Package names to check:", packageNames);
 
       // Set flag to indicate the task is running
-      await AsyncStorage.setItem("isTaskRunning", "true");
+      await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, "true");
 
+      // Get current foreground app
       let foregroundApp = await ForegroundAppDetector.getForegroundApp();
-      console.log(`Foreground app detected: ${foregroundApp}`);
+      console.log(`Current foreground app: ${foregroundApp || 'none'}`);
+      
+      if (!foregroundApp) {
+        console.log("No foreground app detected");
+        await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, "false");
+        return;
+      }
 
-      // Retrieve counter from AsyncStorage (default to 0 if empty)
-      let storedCounter = await AsyncStorage.getItem("counter");
-      let counter = storedCounter ? JSON.parse(storedCounter) : 0;
+      // Retrieve counter from AsyncStorage
+      const counterStr = await safeGetItem(STORAGE_KEYS.COUNTER) || "0";
+      let counter = parseInt(counterStr);
+      const totalMinutesStr = await safeGetItem(STORAGE_KEYS.TOTAL_MINUTES) || "0";
+      const totalMinutes = parseInt(totalMinutesStr);
+      
+      console.log("Total minutes limit:", totalMinutes);
+      const useTime = totalMinutes * 60; // Convert minutes to seconds
+      const reminderTime = 15 * 60; // 15 minutes in seconds
 
+      // Check if foreground app is in the list of apps to block
+      const shouldBlock = packageNames.includes(foregroundApp);
+      
+      if (shouldBlock) {
+        console.log("Detected app to block:", foregroundApp);
 
-      const stored = await AsyncStorage.getItem("totalMinutes");
-      // Convert both stored values to numbers before adding
-      const totalMinutes = stored ? parseInt(stored) : 0;  // Default to 0 if not found
-      console.log("totalMinutes", totalMinutes)
-      const useTime = totalMinutes * 60; // Convert hours to seconds
-      const reminderTime = 15 * 60; // Convert minutes to seconds
-      if (selectedApps.includes(foregroundApp)) {
-        console.log("Blocking app detected:", foregroundApp);
-
-        // **Run counter every 1 second**
         const interval = setInterval(async () => {
-          foregroundApp = await ForegroundAppDetector.getForegroundApp(); // Update foreground app
+          try {
+            // Check if app is still in foreground
+            foregroundApp = await ForegroundAppDetector.getForegroundApp();
+            
+            if (!foregroundApp || !packageNames.includes(foregroundApp)) {
+              console.log("App no longer in focus or not in block list");
+              clearInterval(interval);
+              await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, "false");
+              return;
+            }
 
-          if (!selectedApps.includes(foregroundApp)) {
-            console.log("Restricted app closed, stopping counter.");
+            if (counter >= useTime) {
+              console.log("Usage time exceeded, blocking app.");
+              clearInterval(interval);
+              await AppBlocker.setBlockedApps(packageNames);
+              await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, "false");
+              return;
+            }
+
+            counter++;
+            console.log("Usage count:", counter);
+            await safeSetItem(STORAGE_KEYS.COUNTER, counter.toString());
+
+            if (counter === useTime - reminderTime) {
+              console.log("Sending reminder notification");
+              await ForegroundAppDetector.bringToForeground();
+              navigation.navigate(NAVIGATION.SCREENS.REMINDER_PAGE);
+            }
+          } catch (error) {
+            console.error("Error in monitoring interval:", error);
             clearInterval(interval);
-            await AsyncStorage.setItem("isTaskRunning", "false"); // Reset flag
-            return;
+            await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, "false");
           }
-
-          if (counter >= useTime) {
-            console.log("Usage time exceeded, stopping counter.");
-            clearInterval(interval);
-            await AppBlocker.setBlockedApps(selectedApps); // Block apps
-            await AsyncStorage.setItem("isTaskRunning", "false"); // Reset flag
-            return;
-          }
-
-          counter++;
-          console.log("Count:", counter);
-          await AsyncStorage.setItem("counter", JSON.stringify(counter)); // Persist counter
-
-          // Show reminder before time runs out
-          if (counter === useTime - reminderTime) {
-            await ForegroundAppDetector.bringToForeground();
-            navigation.navigate("ReminderPage");
-          }
-        }, 1000); // **Increments every 1 second**
+        }, 1000);
       } else {
-        console.log("No restricted app is open.");
-        await AsyncStorage.setItem("isTaskRunning", "false"); // Reset flag if no app is open
+        console.log("Current app is not in block list");
+        await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, "false");
       }
     } catch (error) {
       console.error("Error in checkForegroundApp:", error);
-      await AsyncStorage.setItem("isTaskRunning", "false"); // Reset flag on error
+      await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, "false");
     }
   };
 
   const navToSeeMore = () => {
-    navigation.navigate('AnalyticsPage');
+    navigation.navigate(NAVIGATION.SCREENS.ANALYTICS);
   };
 
   const navToSettings = () => {
-    navigation.navigate('Setting');
+    navigation.navigate(NAVIGATION.SCREENS.SETTINGS);
   };
   const navtoanalytics = () => {
-    navigation.navigate('AnalyticsPage');
+    navigation.navigate(NAVIGATION.SCREENS.ANALYTICS);
   };
   const navtovip = () => {
-    navigation.navigate('Vip');
+    navigation.navigate(NAVIGATION.SCREENS.VIP);
   };
   const navtoapplists = () => {
-    navigation.navigate('AppList');
+    navigation.navigate(NAVIGATION.SCREENS.APP_LIST);
   };
 
   const getIcon = (packageName) => {
-    const icon = app.find((item) => item.packageName === packageName)
-    return icon ? icon.icon : "E"
+    if (!apps || !Array.isArray(apps)) return null;
+    const foundApp = apps.find((item) => item && item.packageName === packageName);
+    return foundApp ? foundApp.icon : null;
   }
+  
   const getAppName = (packageName) => {
-    const application = app.find((item) => item.packageName === packageName)
-    return application ? application.appName : packageName
+    if (!apps || !Array.isArray(apps)) return packageName;
+    const appItem = apps.find((item) => item && item.packageName === packageName);
+    return appItem ? appItem.appName : (packageName.split('.').pop() || packageName);
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, paddingTop: hp('1%') }}>
-      <StatusBar barStyle="default" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <Header isDarkMode={isDarkMode} onThemeToggle={toggleTheme} />
       <View style={{ flex: 1 }}>
-        <View style={styles.topRow}>
-          <Image
-            style={{
-              width: wp('13.8%'),
-              height: hp('7%'),
-              borderRadius: 70
-            }}
-            source={require('../../assets/images/quick_logo.png')}
-          />
-          <Text
-            style={{
-              fontFamily: 'TTHoves',
-              fontSize: hp('3%'),
-              marginTop: hp('2%'),
-            }}>
-            {' '}
-            Quick Break{' '}
-          </Text>
-        </View>
-
-
-
-        <LinearGradient
-          colors={["#ff3131", "#ff914d"]}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.screenTime}>
-          <View style={{ display: "flex", flexDirection: "row", flexWrap: "nowrap", marginTop: hp('2%'), marginLeft: wp('4%') }}>
-            <Text style={{ flex: 1, color: "white", fontSize: hp('2.5%'), fontFamily: "TTHoves" }}>Current Streak</Text>
-            <Ionicons name="information-circle-outline" size={24} color="white" style={{
-              right: 8
-            }} />
-          </View>
-          <View style={{ display: "flex", flexDirection: "row", alignItems: "center", display: "flex" }}>
-            <Image
-              source={require('../../assets/images/fire.webp')} // Replace with your image path
-              style={{
-                width: wp('11%'),
-                height: wp('13%'),
-                alignContent: 'center',
-                marginLeft: wp('2%')
-              }}
-              resizeMode="contain"
-            />
-            <View >
-              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('4%'), fontFamily: "TTHoves" }}>
-                0d
-              </Text>
-              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('2%'), fontFamily: "TTHoves" }}>
-                Days Streak
-              </Text>
-            </View>
-
-          </View>
-          <View style={{ backgroundColor: "green", height: 2, width: "100%", marginVertical: hp('2%') }} />
-          <View style={{ display: "flex", flexDirection: "row", }}>
-            <View style={{ paddingLeft: wp('1%'), flex: 1 }}>
-              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('2%'), fontFamily: "TTHoves" }}>
-                Today's screen time
-              </Text>
-              <View style={{
-                backgroundColor: "#1F7B55",
-                width: wp('35%'),
-                justifyContent: "center", // Vertical centering
-                alignItems: "center",      // Horizontal centering
-                paddingVertical: hp('1%'), // Optional: for spacing around text
-                borderRadius: 10,
-                margin: hp('1%')
-              }}>
-                <Text style={{
-                  color: "white",
-                  fontSize: hp('3%'),
-                  fontFamily: "TTHoves",
-                  textAlign: "center", // Make sure the text itself is also centered
-                }}>
-                  used time
-                </Text>
-              </View>
-
-              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('2%'), fontFamily: "TTHoves", paddingBottom: hp('2%') }}>
-                Limit exceeded/not
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: "white", marginLeft: wp('2%'), fontSize: hp('2%'), fontFamily: "TTHoves" }}>
-                Screen-time Limit
-              </Text>
-              <View style={{
-                backgroundColor: "#1F7B55",
-                width: wp('40%'),
-                //justifyContent: "center", // Vertical centering
-                alignItems: "center",      // Horizontal centering
-                paddingVertical: hp('1%'), // Optional: for spacing around text
-                borderRadius: 10,
-                margin: hp('1%'),
-                display: "flex",
-                flexDirection: "row",
-                marginRight: wp('1%')
-              }}>
-                <Text style={{
-                  color: "white",
-                  fontSize: hp('3%'),
-                  fontFamily: "TTHoves",
-                  paddingLeft: wp('1%')
-                  //textAlign: "center", // Make sure the text itself is also centered
-                }}>
-                  {hours}hr {minutes}min
-                </Text>
-
-                <View style={{
-                  backgroundColor: "black",
-                  width: wp('13%'),
-                  justifyContent: "center", // Vertical centering
-                  alignItems: "center",      // Horizontal centering
-                  paddingVertical: hp('0.5%'), // Optional: for spacing around text
-                  borderRadius: 10,
-                  display: "flex",
-                  flexDirection: "row",
-                  right: 8,
-                  position: "absolute"
-                }}>
-                  <TouchableOpacity onPress={() => setIsVisible(true)} >
-
-                    <Text style={{ textAlign: "center", color: "white", fontSize: hp('2%'), fontFamily: "TTHoves", }}>Edit </Text>
-                  </TouchableOpacity>
-
-                </View>
-
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-
-        <Modal visible={isVisible} transparent animationType="fade">
-          <View style={styles.modalBackground}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.setTimeText}>Select Time</Text>
-
-              <View style={styles.pickerContainer}>
-                {/* Hour Selector */}
-                <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
-                  {[0, 1, 2, 3].map((hour) => (
-                    <TouchableOpacity
-                      key={hour}
-                      onPress={() => setSelectedHour(hour)}
-                      style={[styles.pickerItem, selectedHour === hour && styles.selectedItem]}
-                    >
-                      <Text style={styles.pickerText}>{hour}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                {/* Separator */}
-                <Text style={styles.separator}>:</Text>
-
-                {/* Minute Selector */}
-                <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 41 }, (_, i) => i + 20).map((minute) => (
-                    <TouchableOpacity
-                      key={minute}
-                      onPress={() => setSelectedMinute(minute)}
-                      style={[styles.pickerItem, selectedMinute === minute && styles.selectedItem]}
-                    >
-                      <Text style={styles.pickerText}>{minute.toString().padStart(2, "0")}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Buttons */}
-              <View style={styles.buttonRow}>
-                <TouchableOpacity onPress={() => setIsVisible(false)} style={[styles.button, styles.cancelButton]}>
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={handleConfirm} style={[styles.button, styles.confirmButton]}>
-                  <Text style={styles.buttonText}>Confirm</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-
-        <View style={styles.manageapps}>
-          <View style={styles.parent}>
-            <Text style={styles.header}>Manage Block Apps</Text>
-            <View style={styles.addAppContainer}>
-              <TouchableOpacity onPress={navtoapplists} style={styles.addButton}>
-                <FontAwesome name="plus-circle" size={20} color="white" />
-                <Text style={styles.addButtonText}>Add a new app</Text>
+        <ScrollView 
+          style={[styles.scrollView, { backgroundColor: theme.background }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.screenTime, { 
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border
+          }]}>
+            <View style={styles.streakHeader}>
+              <Text style={[styles.streakTitle, { color: isDarkMode ? COLORS.primary : COLORS.primary }]}>Current Streak</Text>
+              <TouchableOpacity style={styles.infoIcon}>
+                <Ionicons name="information-circle-outline" size={wp('5%')} color={COLORS.primary} />
               </TouchableOpacity>
             </View>
+
+            <View style={[styles.streakContent, { backgroundColor: isDarkMode ? COLORS.background.darkTertiary : COLORS.primaryLight }]}>
+              <Image
+                source={require('../../assets/images/fire.webp')}
+                style={styles.streakFireIcon}
+              />
+              <View style={styles.streakTextContainer}>
+                <Text style={[styles.streakDays, { color: isDarkMode ? COLORS.primary : COLORS.primary }]}>
+                  10 Days
+                </Text>
+                <Text style={[styles.streakLabel, { color: theme.secondaryText }]}>
+                  You're on a roll! Keep it up!
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            
+            <View style={styles.statsHeader}>
+              <Text style={[styles.usageTracker, { color: isDarkMode ? COLORS.primary : COLORS.primary }]}>
+                Screen Time Stats
+              </Text>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => setIsVisible(true)}
+              >
+                <Ionicons name="create-outline" size={wp('4%')} color="#FFF" />
+                <Text style={styles.editButtonText}>Set Limit</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.statsGroupContainer, { 
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border
+            }]}>
+              <View style={styles.statsContainer}>
+                <View style={[styles.statBox, { 
+                  backgroundColor: isDarkMode ? COLORS.background.darkTertiary : COLORS.primaryLight 
+                }]}>
+                  <Text style={[styles.statTitle, { color: theme.secondaryText }]}>Today's Usage</Text>
+                  <View style={styles.timeValueContainer}>
+                    <Text style={[styles.timeValue, { 
+                      color: isDarkMode ? COLORS.primary : COLORS.primary 
+                    }]}>
+                      {usage}
+                    </Text>
+                  </View>
+                  <Text style={[styles.statSubtitle, { color: theme.secondaryText }]}>vs limit: 2h 30m</Text>
+                </View>
+
+                <View style={[styles.statBox, { 
+                  backgroundColor: isDarkMode ? COLORS.background.darkTertiary : COLORS.primaryLight 
+                }]}>
+                  <Text style={[styles.statTitle, { color: theme.secondaryText }]}>Daily Limit</Text>
+                  <View style={styles.timeValueContainer}>
+                    <Text style={[styles.timeValue, { 
+                      color: isDarkMode ? COLORS.primary : COLORS.primary 
+                    }]}>
+                      {reminder}
+                    </Text>
+                  </View>
+                  <Text style={[styles.statSubtitle, { color: theme.secondaryText }]}>Tap to edit limit</Text>
+                </View>
+              </View>
+            </View>
           </View>
-          <View style={styles.parent1}>
-            <Text style={styles.subHeader}>Apps</Text>
-            <Text style={styles.sortText}>
-              Sort by <Text style={styles.sortHighlight}>Blocked</Text>
-            </Text>
-          </View>
-          <View style={{ height: hp("25%"), paddingTop: hp('2%') }}>
-            <FlatList
-              data={selectedApps}
-              keyExtractor={item => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.appItem}>
-                  <Image
-                    source={{ uri: `data:image/png;base64,${getIcon(item.packageName)}` }}
-                    style={styles.appIcon}
-                  />
-                  <Text style={styles.appName}>{getAppName(item.packageName)}</Text>
-                  <Text style={styles.blockedText}>Blocked</Text>
+
+          <Modal visible={isVisible} transparent animationType="fade">
+            <View style={styles.modalBackground}>
+              <View style={[styles.modalContainer, { 
+                backgroundColor: theme.cardBackground,
+                borderColor: isDarkMode ? COLORS.primaryDark : COLORS.primary 
+              }]}>
+                <Text style={[styles.setTimeText, { color: isDarkMode ? COLORS.primary : COLORS.primary }]}>
+                  Set Screen Time Limit
+                </Text>
+                <View style={styles.pickerContainer}>
+                  <View style={[styles.picker, { backgroundColor: isDarkMode ? COLORS.background.darkTertiary : COLORS.background.secondary }]}>
+                    {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                      <TouchableOpacity
+                        key={hour}
+                        style={[
+                          styles.pickerItem,
+                          selectedHour === hour && styles.selectedItem
+                        ]}
+                        onPress={() => handleSelectHour(hour)}
+                      >
+                        <Text style={[
+                          styles.pickerText, 
+                          { color: selectedHour === hour ? '#FFFFFF' : theme.text }
+                        ]}>
+                          {hour.toString().padStart(2, '0')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={[styles.separator, { color: isDarkMode ? COLORS.primary : COLORS.primary }]}>:</Text>
+                  <View style={[styles.picker, { backgroundColor: isDarkMode ? COLORS.background.darkTertiary : COLORS.background.secondary }]}>
+                    {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
+                      <TouchableOpacity
+                        key={minute}
+                        style={[
+                          styles.pickerItem,
+                          selectedMinute === minute && styles.selectedItem
+                        ]}
+                        onPress={() => handleSelectMinute(minute)}
+                      >
+                        <Text style={[
+                          styles.pickerText, 
+                          { color: selectedMinute === minute ? '#FFFFFF' : theme.text }
+                        ]}>
+                          {minute.toString().padStart(2, '0')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={[styles.button, styles.cancelButton, { 
+                      backgroundColor: isDarkMode ? COLORS.background.darkTertiary : COLORS.background.secondary 
+                    }]}
+                    onPress={() => setIsVisible(false)}
+                  >
+                    <Text style={[styles.buttonText, { color: theme.text }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.button, styles.confirmButton]}
+                    onPress={handleConfirm}
+                  >
+                    <Text style={styles.buttonText}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          <View style={[styles.manageapps, { backgroundColor: theme.background }]}>
+            <View style={styles.parent}>
+              <Text style={[styles.header, { color: isDarkMode ? COLORS.primary : COLORS.primary }]}>
+                Blocked Apps ({selectedApps.length})
+              </Text>
+              <TouchableOpacity 
+                style={styles.addAppContainer}
+                onPress={() => navigation.navigate(NAVIGATION.SCREENS.APP_LIST)}
+              >
+                <View style={styles.addButton}>
+                  <Ionicons name="add" size={wp('5%')} color="#FFFFFF" />
+                  <Text style={styles.addButtonText}>Add</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.parent1}>
+              <Text style={[styles.subHeader, { color: isDarkMode ? COLORS.primary : COLORS.primary }]}>
+                All Apps
+              </Text>
+              <Text style={[styles.sortText, { color: theme.secondaryText }]}>
+                Sort by: <Text style={styles.sortHighlight}>Most Used</Text>
+              </Text>
+            </View>
+            <View style={styles.appsListContainer}>
+              {selectedApps.length > 0 ? (
+                <>
+                  {selectedApps.slice(0, 5).map((item) => (
+                    <View 
+                      key={item.packageName}
+                      style={[styles.appItem, { borderColor: theme.border }]}
+                    >
+                      {item.icon ? (
+                        <Image 
+                          source={{ uri: typeof item.icon === 'string' && item.icon.startsWith('data:') ? item.icon : `data:image/png;base64,${item.icon}` }} 
+                          style={styles.appIcon} 
+                        />
+                      ) : (
+                        <View style={[styles.appIcon, styles.noAppIcon]}>
+                          <Text style={styles.appIconText}>{item.appName ? item.appName.charAt(0).toUpperCase() : '?'}</Text>
+                        </View>
+                      )}
+                      <Text style={[styles.appName, { color: theme.text }]}>{item.appName}</Text>
+                      <Text style={styles.blockedText}>Blocked</Text>
+                    </View>
+                  ))}
+                  
+                  {selectedApps.length > 5 && (
+                    <TouchableOpacity 
+                      style={styles.showMoreContainer}
+                      onPress={() => navigation.navigate(NAVIGATION.SCREENS.APP_LIST)}
+                    >
+                      <Text style={styles.showMoreText}>Show More</Text>
+                      <Ionicons name="chevron-forward" size={wp('4%')} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                <View style={styles.noAppsContainer}>
+                  <Ionicons name="apps-outline" size={wp('12%')} color={theme.secondaryText} />
+                  <Text style={[styles.noAppsText, { color: theme.secondaryText }]}>
+                    No apps selected for blocking
+                  </Text>
+                  <Text style={[styles.noAppsSubText, { color: theme.secondaryText }]}>
+                    Tap the "Add" button to select apps you want to limit
+                  </Text>
                 </View>
               )}
-            />
+            </View>
           </View>
-        </View>
-        <View
-          style={{
-            backgroundColor: "#1F7B55",
-            width: wp('100%'),
-            paddingHorizontal: wp('5%'),
-            flexDirection: 'row',
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            paddingVertical: hp('0.01%'),
-          }}>
-          <Ionicons name="compass" size={wp('12%')} color="white" />
-          <Text
-            style={{
-              fontFamily: 'TTHoves',
-              color: 'white',
-              fontSize: hp('2%'),
-              paddingVertical: "5%",
-              marginHorizontal: wp('2%'),
-            }}>
-            Dashboard
-          </Text>
-          <View
-            style={{
-              width: wp('0.3%'),
+        </ScrollView>
 
-              backgroundColor: 'white',
-
-              marginHorizontal: wp('5%'),
-            }}
-          />
-          <TouchableOpacity onPress={navToSettings}>
-            <View
-              style={[
-                styles.footerLogo,
-                {
-                  marginLeft: wp('2%'),
-                },
-              ]}>
-              <Fontisto
-
-                name="player-settings"
-                size={wp('7%')}
-                color="white"
-              />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={navtoanalytics}>
-            <View
-              style={[
-                styles.footerLogo,
-                {
-                  marginHorizontal: wp('4%'),
-                },
-              ]}>
-              <Image
-                source={require('../../assets/images/Analytics.png')} // Replace with your image path
-                style={{
-                  width: wp('11%'),
-                  height: wp('9%'),
-                  alignContent: 'center',
-                }}
-                resizeMode="contain"
-              />
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={navtovip}>
-            <View style={[styles.footerLogo]} source={require('./icons/4.png')}>
-              <Ionicons
-
-                name="person"
-                size={wp('7%')}
-                color="white"
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View >
-    </SafeAreaView >
+        <BottomNavBar navigation={navigation} currentScreen="DashBoard" isDarkMode={isDarkMode} />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  topRow: {
-    flexDirection: 'row',
-    marginLeft: wp('5%'),
-  },
-  footerLogo: {
-    width: wp('11%'),
-    height: hp('5%'),
-    marginVertical: hp('0.5%'),
-    borderWidth: 1,
-    borderColor: "white",
-    borderRadius: wp("50%"),
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  header: { fontSize: hp('3%'), fontWeight: 'bold' },
-  addAppContainer: {
-    alignItems: 'flex-end', marginLeft: wp('5%'), backgroundColor: "#1F7B55",
-
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: wp('2%'),
-    borderRadius: wp('1%'),
-    borderColor: '#267a3a',
-  },
-  addButtonText: {
-    marginLeft: wp('1%'),
-    fontSize: wp('4.4%'),
-    fontWeight: 'bold',
-    color: "white",
-  },
-  subHeader: {
-    fontSize: wp('5%'),
-    fontWeight: 'bold',
-    color: 'black',
-    flexBasis: '50%',
-  },
-  sortText: {
-    fontSize: wp('4%'),
-    color: 'gray',
-    flexBasis: '40%',
-    textAlign: 'right',
-  },
-  sortHighlight: { color: 'red', fontWeight: 'bold' },
-  appItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: hp('0.7%'),
-    borderBottomWidth: hp('0.3%'),
-    borderColor: '#ccc',
-  },
-  appIcon: { marginRight: wp('4%') },
-  appName: { paddingLeft: wp('2%'), flex: 1, fontSize: wp('4.5%') },
-  blockedText: { color: 'red', fontWeight: 'bold' },
-  parent: {
-    display: 'flex',
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: hp('1%'),
-  },
-  manageapps: {
-    paddingTop: hp('4%'),
-    paddingHorizontal: wp('6%'),
-  },
-  parent1: {
-    display: 'flex',
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: hp('1%'),
-  },
-  appIcon: {
-    height: hp("5%"),
-    width: wp("10%"),
+  container: {
+    flex: 1,
   },
   screenTime: {
-    backgroundColor: "black",
+    backgroundColor: COLORS.background.primary,
     width: wp('92%'),
     marginLeft: wp('4%'),
-    borderRadius: 10,
-    marginTop: hp('3%'),
+    borderRadius: BORDER_RADIUS.lg,
+    marginTop: VERTICAL_SPACING.sm,
+    padding: SPACING.md,
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+  },
+  streakHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: VERTICAL_SPACING.sm,
+  },
+  streakTitle: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+  },
+  infoIcon: {
+    padding: SPACING.sm,
+  },
+  streakContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm,
+    marginBottom: VERTICAL_SPACING.sm,
+  },
+  streakFireIcon: {
+    width: wp('15%'),
+    height: wp('15%'),
+    marginRight: SPACING.md,
+  },
+  streakTextContainer: {
+    flex: 1,
+  },
+  streakDays: {
+    fontSize: FONT_SIZES.xl,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    marginBottom: VERTICAL_SPACING.xs,
+  },
+  streakLabel: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.text.secondary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border.light,
+    marginVertical: VERTICAL_SPACING.sm,
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: VERTICAL_SPACING.md,
+    paddingHorizontal: SPACING.xs,
+  },
+  usageTracker: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+  },
+  statsGroupContainer: {
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm,
+    backgroundColor: COLORS.background.primary,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: BORDER_RADIUS.sm,
+    padding: SPACING.md,
+  },
+  statTitle: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.medium,
+    color: COLORS.text.secondary,
+    marginBottom: VERTICAL_SPACING.xs,
+  },
+  timeValueContainer: {
+    borderRadius: BORDER_RADIUS.sm,
+    paddingVertical: VERTICAL_SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    alignItems: 'center',
+    marginBottom: VERTICAL_SPACING.xs,
+  },
+  timeValue: {
+    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    textAlign: 'center',
+  },
+  statSubtitle: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  editButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingVertical: VERTICAL_SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: COLORS.background.primary,
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.medium,
+    marginLeft: SPACING.xs,
   },
   modalBackground: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
   modalContainer: {
     width: "85%",
-    backgroundColor: "#1E1E1E",
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: COLORS.background.primary,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.lg,
     alignItems: "center",
-    borderColor: "#007AFF",
+    borderColor: COLORS.primary,
     borderWidth: 1,
+    ...SHADOWS.light,
   },
   setTimeText: {
-    color: "cyan",
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
+    color: COLORS.primary,
+    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.bold,
+    marginBottom: VERTICAL_SPACING.md,
   },
   pickerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    paddingVertical: 10,
+    paddingVertical: VERTICAL_SPACING.xs,
   },
   picker: {
-    maxHeight: 150,
-    width: 70,
-    backgroundColor: "#333",
-    borderRadius: 8,
-    paddingVertical: 5,
+    maxHeight: hp('20%'),
+    width: wp('18%'),
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingVertical: VERTICAL_SPACING.xs,
   },
   pickerItem: {
-    paddingVertical: 12,
+    paddingVertical: VERTICAL_SPACING.sm,
     alignItems: "center",
   },
   selectedItem: {
-    backgroundColor: "#007AFF",
-    borderRadius: 6,
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.sm,
   },
   pickerText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    color: COLORS.text.primary,
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.medium,
   },
   separator: {
-    fontSize: 22,
-    color: "white",
-    marginHorizontal: 12,
-    fontWeight: "bold",
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.primary,
+    marginHorizontal: SPACING.md,
+    fontFamily: FONTS.bold,
   },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    marginTop: 15,
+    marginTop: VERTICAL_SPACING.md,
   },
   button: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: VERTICAL_SPACING.sm,
     alignItems: "center",
-    borderRadius: 8,
-    marginHorizontal: 5,
+    borderRadius: BORDER_RADIUS.sm,
+    marginHorizontal: SPACING.xs,
   },
   confirmButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: COLORS.primary,
   },
   cancelButton: {
-    backgroundColor: "#555",
+    backgroundColor: COLORS.background.secondary,
   },
   buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: COLORS.background.primary,
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.medium,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  appsListContainer: {
+    height: hp('25%'),
+    paddingTop: VERTICAL_SPACING.md,
+  },
+  showMoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: VERTICAL_SPACING.xs,
+    marginTop: VERTICAL_SPACING.xs,
+  },
+  showMoreText: {
+    color: COLORS.primary,
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.medium,
+    marginRight: SPACING.xs,
+  },
+  manageapps: {
+    paddingTop: VERTICAL_SPACING.lg,
+    paddingHorizontal: wp('6%'),
+  },
+  parent: {
+    display: 'flex',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: VERTICAL_SPACING.md,
+    marginBottom: VERTICAL_SPACING.xs,
+  },
+  parent1: {
+    display: 'flex',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: VERTICAL_SPACING.xs,
+    marginBottom: VERTICAL_SPACING.xs,
+  },
+  header: { 
+    fontSize: FONT_SIZES.lg, 
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    marginBottom: VERTICAL_SPACING.xs,
+  },
+  addAppContainer: {
+    alignItems: 'flex-end', 
+    marginLeft: wp('5%'), 
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.sm,
+    padding: SPACING.xs,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.sm,
+    borderRadius: BORDER_RADIUS.xs,
+  },
+  addButtonText: {
+    marginLeft: SPACING.xs,
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.medium,
+    color: COLORS.background.primary,
+  },
+  subHeader: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    flexBasis: '50%',
+  },
+  sortText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.text.secondary,
+    flexBasis: '40%',
+    textAlign: 'right',
+  },
+  sortHighlight: { 
+    color: COLORS.primary, 
+    fontFamily: FONTS.bold 
+  },
+  appItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: VERTICAL_SPACING.xs,
+    borderBottomWidth: 1,
+    borderColor: COLORS.border.light,
+    marginBottom: VERTICAL_SPACING.xs,
+  },
+  appIcon: { 
+    height: hp("5%"),
+    width: wp("10%"),
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  appName: { 
+    paddingLeft: SPACING.sm, 
+    flex: 1, 
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.regular,
+    color: COLORS.text.primary,
+  },
+  blockedText: { 
+    color: COLORS.primary, 
+    fontFamily: FONTS.bold,
+    fontSize: FONT_SIZES.sm,
+  },
+  noAppsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noAppsText: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.bold,
+    color: COLORS.text.secondary,
+    marginBottom: VERTICAL_SPACING.xs,
+  },
+  noAppsSubText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.text.secondary,
+  },
+  noAppIcon: {
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appIconText: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.bold,
+    color: COLORS.text.primary,
   },
 });
 

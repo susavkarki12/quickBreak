@@ -10,8 +10,8 @@ import ReactNativeForegroundService from '@supersami/rn-foreground-service';
 ReactNativeForegroundService.register({
     config: {
       alert: true,
-      onServiceErrorCallBack: () => {
-        console.error("Foreground service error occurred");
+      onServiceErrorCallBack: (err) => {
+        console.error("Foreground service error occurred:", err);
       },
     }
   })
