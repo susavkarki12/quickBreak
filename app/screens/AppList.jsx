@@ -30,6 +30,9 @@ import {
 } from '../constants/theme';
 import BottomNavBar from '../components/BottomNavBar';
 
+// Helper function for rgba colors
+const rgba = (r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
+
 const AppList = ({ navigation }) => {
     const [apps, setApps] = useState([]);
     const [filteredApps, setFilteredApps] = useState([]);
@@ -47,8 +50,23 @@ const AppList = ({ navigation }) => {
                 if (storedApps) {
                     const parsedApps = JSON.parse(storedApps);
                     setApps(parsedApps);
-                    setFilteredApps(sortApps(parsedApps, JSON.parse(storedSelectedApps) || []));
-                }else{
+                    
+                    // Parse selected apps correctly, handling both array of strings and array of objects
+                    let selectedPackageNames = [];
+                    if (storedSelectedApps) {
+                        const parsedSelectedApps = JSON.parse(storedSelectedApps);
+                        
+                        // Extract package names from the selected apps
+                        selectedPackageNames = parsedSelectedApps.map(app => {
+                            if (typeof app === 'string') return app;
+                            return app.packageName;
+                        }).filter(Boolean);
+                        
+                        setSelectedApps(selectedPackageNames);
+                    }
+                    
+                    setFilteredApps(sortApps(parsedApps, selectedPackageNames));
+                } else {
                     NativeModules.RNAndroidInstalledApps.getNonSystemApps()
                     .then((appList) => {
                         const transformedApps = appList.map((app) => ({
@@ -63,11 +81,6 @@ const AppList = ({ navigation }) => {
                     .catch((error) => {
                         console.error("Failed to get non-system apps", error);
                     });
-                }
-                
-                if (storedSelectedApps) {
-                    const parsedSelectedApps = JSON.parse(storedSelectedApps);
-                    setSelectedApps(parsedSelectedApps);
                 }
             } catch (error) {
                 console.error("Error retrieving stored apps:", error);
@@ -135,9 +148,18 @@ const AppList = ({ navigation }) => {
     // Render each app item
     const renderAppItem = ({ item }) => {
         const isSelected = selectedApps.includes(item.packageName);
+        
+        // An app is in both lists if it's currently selected and exists in the apps array
+        // This means it was loaded from AsyncStorage and is also currently selected
+        const isInBothLists = isSelected && apps.some(app => app.packageName === item.packageName);
+        
         return (
             <TouchableOpacity
-                style={[styles.appItem, isSelected && styles.selectedApp]}
+                style={[
+                    styles.appItem, 
+                    isSelected && styles.selectedApp,
+                    isInBothLists && styles.selectedStoredApp
+                ]}
                 onPress={() => toggleSelection(item.packageName)}
             >
                 <View style={[styles.radioCircle, isSelected && styles.selectedCircle]} />
@@ -154,6 +176,11 @@ const AppList = ({ navigation }) => {
                     )}
                 </View>
                 <Text style={styles.appName}>{item.appName || 'Unknown App'}</Text>
+                {isInBothLists && (
+                    <View style={styles.storedBadge}>
+                        <Text style={styles.storedBadgeText}>Blocked</Text>
+                    </View>
+                )}
             </TouchableOpacity>
         );
     };
@@ -164,6 +191,9 @@ const AppList = ({ navigation }) => {
             
             // First save the plain package name array for compatibility
             await AsyncStorage.setItem(STORAGE_KEYS.SELECTED_APPS, JSON.stringify(selectedApps));
+            
+            // Set the hasSeenOnboarding flag to prevent showing onboarding again
+            await AsyncStorage.setItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING, 'true');
             
             // Log success and navigate back
             console.log("Selected apps stored successfully:", selectedApps);
@@ -216,7 +246,8 @@ const AppList = ({ navigation }) => {
                         <Ionicons name="chevron-back" size={24} color="#1f7b55" />
                         <Text style={styles.backButtonText}>Back</Text>
                     </TouchableOpacity>
-                    <Text style={styles.header}>Select Apps</Text>
+                    <Text style={styles.headerText}>Select Apps</Text>
+                    <View style={styles.spacer}></View>
                 </View>
                 <Text style={styles.subHeader}>Choose apps to block during break time</Text>
             </View>
@@ -253,7 +284,7 @@ const AppList = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            <BottomNavBar navigation={navigation} currentScreen={NAVIGATION.SCREENS.APP_LIST} isDarkMode={false} />
+            {/* <BottomNavBar navigation={navigation} currentScreen={NAVIGATION.SCREENS.APP_LIST} isDarkMode={false} /> */}
         </SafeAreaView>
     );
 };
@@ -268,14 +299,17 @@ const styles = StyleSheet.create({
     headerTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        position: 'relative',
+        justifyContent: 'space-between',
         marginBottom: VERTICAL_SPACING.xs,
     },
-    header: {
-        ...COMMON_STYLES.header,
-        position: 'absolute',
-        left: 0,
-        right: 0,
+    headerText: {
+        fontSize: FONT_SIZES.h2,
+        fontFamily: FONTS.bold,
+        color: COLORS.text.dark,
+        textAlign: 'center',
+    },
+    spacer: {
+        width: 80, // Match approximate width of back button to center the title
     },
     subHeader: COMMON_STYLES.subHeader,
     searchContainer: {
@@ -387,10 +421,27 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    appIconText: {
-        fontSize: FONT_SIZES.h3,
-        fontFamily: FONTS.medium,
-        color: COLORS.text.dark,
+   
+    selectedStoredApp: {
+        borderColor: COLORS.primary || '#FF9800',
+        borderWidth: 2,
+        shadowColor: COLORS.primary || '#FF9800',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        elevation: 4,
+    },
+    storedBadge: {
+        backgroundColor: COLORS.primary || '#FF9800',
+        paddingHorizontal: SPACING.sm,
+        paddingVertical: VERTICAL_SPACING.xs / 2,
+        borderRadius: BORDER_RADIUS.sm,
+        marginLeft: SPACING.xs,
+    },
+    storedBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontFamily: FONTS.bold,
     },
 });
 

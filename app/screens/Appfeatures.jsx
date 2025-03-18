@@ -5,6 +5,8 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../constants/theme';
 
 const Appfeatures = ({navigation}) => {
   const options = [
@@ -13,8 +15,15 @@ const Appfeatures = ({navigation}) => {
     { title: "Guided Breaks", description: "Motivational quotes and breathing reminders." },
     { title: "Emergency Cycle", description: "15 extra minutes, then a 24-hour lock." }
   ];
-  const nav=()=>{
-    navigation.navigate("MainPermission")
+  const nav = async () => {
+    try {
+      // Set the hasSeenOnboarding flag to prevent showing onboarding again
+      await AsyncStorage.setItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING, 'true');
+      navigation.navigate("MainPermission")
+    } catch (error) {
+      console.error("Error saving onboarding status:", error);
+      navigation.navigate("MainPermission")
+    }
   }
   return (
     <View style={styles.container}>

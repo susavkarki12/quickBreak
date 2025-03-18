@@ -141,9 +141,10 @@ export const COMMON_STYLES = {
         color: COLORS.text.primary,
     },
     subHeader: {
-        fontSize: FONT_SIZES.small,
+        fontSize: 12,
         fontFamily: FONTS.regular,
         color: COLORS.text.secondary,
+        textAlign: 'center',
     },
     button: {
         borderRadius: BORDER_RADIUS.md,
