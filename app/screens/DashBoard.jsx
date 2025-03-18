@@ -36,6 +36,8 @@ import {
   NAVIGATION,
 } from '../constants/theme';
 import AppList from './AppList';
+import UsageMonitorService from '../Service/UsageMonitorService';
+import UsageManagementService from '../Service/UsageManagementService';
 const {AppBlocker, ForegroundAppDetector} = NativeModules;
 
 const DashBoard = ({navigation}) => {
@@ -143,15 +145,11 @@ const DashBoard = ({navigation}) => {
   // Handle Confirm Button
   const handleConfirm = async () => {
     const formattedTime = formatTime();
-    console.log('Selected Time:', formattedTime); // 🔹 Print time to console
-    // Save time to AsyncStorage
-    const totalMinutes = selectedHour * 60 + selectedMinute;
-
-    // Store the totalMinutes in state or AsyncStorage
-    console.log('Total minutes: ', totalMinutes);
-
-    // Optionally, save it to AsyncStorage
-    await safeSetItem(STORAGE_KEYS.TOTAL_MINUTES, JSON.stringify(totalMinutes));
+    console.log('Selected Time:', formattedTime);
+    
+    // Use UsageManagementService to set the screen time limit
+    await UsageManagementService.setScreenTimeLimit(selectedHour, selectedMinute);
+    
     setIsVisible(false);
   };
 
@@ -299,184 +297,27 @@ const DashBoard = ({navigation}) => {
   const navtovip = () => navigateTo(NAVIGATION.SCREENS.VIP);
   const navtoapplists = () => navigateTo(NAVIGATION.SCREENS.APP_LIST);
 
-  // Function to check foreground app
-  const checkForegroundApp = async selectedApps => {
-    try {
-      // Use helper function to extract package names
-      const packageNames = extractPackageNames(selectedApps);
-
-      // If no valid apps, exit early
-      if (packageNames.length === 0) {
-        return;
-      }
-
-      // Check if the task is already running
-      let isTaskRunning = await safeGetItem(STORAGE_KEYS.IS_TASK_RUNNING);
-      if (isTaskRunning === 'true') {
-        return;
-      }
-
-      // Set flag to indicate the task is running
-      await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'true');
-
-      // Get current foreground app
-      let foregroundApp = await ForegroundAppDetector.getForegroundApp();
-
-      if (!foregroundApp) {
-        await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-        return;
-      }
-
-      // Retrieve counter from AsyncStorage
-      const counterStr = (await safeGetItem(STORAGE_KEYS.COUNTER)) || '0';
-      let counter = parseInt(counterStr);
-      const totalMinutesStr =
-        (await safeGetItem(STORAGE_KEYS.TOTAL_MINUTES)) || '0';
-      const totalMinutes = parseInt(totalMinutesStr);
-
-      const useTime = totalMinutes * 60; // Convert minutes to seconds
-      const reminderTime = 15 * 60; // 15 minutes in seconds
-
-      // Check if foreground app is in the list of apps to block
-      const shouldBlock = packageNames.includes(foregroundApp);
-
-      if (shouldBlock) {
-        const interval = setInterval(async () => {
-          try {
-            // Check if app is still in foreground
-            foregroundApp = await ForegroundAppDetector.getForegroundApp();
-
-            if (!foregroundApp || !packageNames.includes(foregroundApp)) {
-              clearInterval(interval);
-              await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-              return;
-            }
-
-            if (counter >= useTime) {
-              clearInterval(interval);
-              await AppBlocker.setBlockedApps(packageNames);
-              await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-              return;
-            }
-
-            counter++;
-            await safeSetItem(STORAGE_KEYS.COUNTER, counter.toString());
-
-            if (counter === useTime - reminderTime) {
-              await ForegroundAppDetector.bringToForeground();
-              navigation.navigate(NAVIGATION.SCREENS.REMINDER_PAGE);
-            }
-          } catch (error) {
-            console.error('Error in monitoring interval:', error);
-            clearInterval(interval);
-            await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-          }
-        }, 1000);
-      } else {
-        await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-      }
-    } catch (error) {
-      console.error('Error in checkForegroundApp:', error);
-      await safeSetItem(STORAGE_KEYS.IS_TASK_RUNNING, 'false');
-    }
-  };
-
-  // Refactoring the monitorAppUsage function to use the extractPackageNames helper
-  const monitorAppUsage = async () => {
-    try {
-      const storedSelectedApps = await safeGetItem(STORAGE_KEYS.SELECTED_APPS);
-      if (!storedSelectedApps) return;
-
-      try {
-        // Parse stored selected apps and get package names
-        const parsedSelectedApps = JSON.parse(storedSelectedApps);
-        
-        // Extract package names and check if valid
-        const packageNames = extractPackageNames(parsedSelectedApps);
-        if (packageNames.length === 0) return;
-        
-        // Check foreground app with these package names
-        await checkForegroundApp(packageNames);
-      } catch (parseError) {
-        console.error('Error parsing selected apps:', parseError);
-      }
-    } catch (error) {
-      console.error('Error in app usage monitoring:', error);
-    }
-  };
-
+  // Replace the entire useEffect for service monitoring with a simpler one that uses the service
   useEffect(() => {
-    let isServiceStarted = false;
-
-    const startForegroundService = async () => {
-      try {
-        if (isServiceStarted) return;
-
-        // Check if service is already running
-        const isRunning = await ReactNativeForegroundService.is_running();
-
-        if (!isRunning) {
-          await ReactNativeForegroundService.start({
-            id: 1244,
-            title: 'QuickBreak',
-            message: 'Monitoring app usage...',
-            icon: 'ic_launcher',
-            importance: 'high',
-            visibility: 'public',
-            color: '#1F7B55',
-            setOnlyAlertOnce: true,
-            ServiceType: 'dataSync',
-          });
-        }
-
-        isServiceStarted = true;
-
-        // Add monitoring tasks regardless of has_task check to ensure they are registered
-        ReactNativeForegroundService.add_task(() => monitorAppUsage(), {
-          delay: 5000,
-          onLoop: true,
-          taskId: 'app_usage_monitor',
-          onError: error => console.error('App monitoring task error:', error),
-        });
-
-        ReactNativeForegroundService.add_task(() => checkMidnightReset(), {
-          delay: 60000,
-          onLoop: true,
-          taskId: 'daily_reset',
-          onError: error => console.error('Daily reset task error:', error),
-        });
-      } catch (error) {
-        console.error('Error starting foreground service:', error);
-        isServiceStarted = false;
-      }
+    // Start the usage monitoring service when component mounts
+    UsageMonitorService.startMonitoring();
+    
+    // Pass navigation to UsageMonitorService for UI overlays in reminders
+    const sendReminderWithNavigation = (remainingMinutes) => {
+      UsageMonitorService.sendReminder(navigation);
     };
+    
+    // Pass our sendReminder function with navigation to the service
+    UsageMonitorService.reminderCallback = sendReminderWithNavigation;
 
-    const checkMidnightReset = async () => {
-      try {
-        const now = new Date();
-        if (now.getHours() === 0 && now.getMinutes() === 0) {
-          await safeSetItem(STORAGE_KEYS.COUNTER, '0');
-          await checkForegroundApp([]);
-        }
-      } catch (error) {
-        console.error('Error in midnight reset:', error);
-      }
-    };
-
-    startForegroundService();
-
-    // Cleanup function
+    // Clean up on unmount
     return () => {
-      if (isServiceStarted) {
-        ReactNativeForegroundService.remove_task('app_usage_monitor');
-        ReactNativeForegroundService.remove_task('daily_reset');
-        ReactNativeForegroundService.stop();
-        isServiceStarted = false;
-      }
+      UsageMonitorService.stopMonitoring();
+      UsageMonitorService.reminderCallback = null;
     };
-  }, []);
+  }, [navigation]);
 
-  // Refactor the updateBlockedApps function to use the extractPackageNames helper
+  // Replace the updateBlockedApps useEffect to use the service
   useEffect(() => {
     const updateBlockedApps = async () => {
       try {
@@ -490,20 +331,8 @@ const DashBoard = ({navigation}) => {
           return;
         }
 
-        // Use helper function to extract package names
-        const validPackageNames = extractPackageNames(selectedApps);
-        
-        // Create mapped apps for additional info if needed
-        const mappedApps = validPackageNames.map(packageName => ({
-          packageName,
-          appName: getAppName(packageName)
-        }));
-
-        if (validPackageNames.length > 0) {
-          await AppBlocker.setBlockedApps(validPackageNames);
-        } else {
-          await AppBlocker.setBlockedApps([]);
-        }
+        // Use the service to set the apps to block
+        await UsageMonitorService.setAppsToBlock(selectedApps);
       } catch (error) {
         console.error('Error setting blocked apps:', error);
       }
@@ -547,35 +376,42 @@ const DashBoard = ({navigation}) => {
     }
   }, [apps]); // Keep apps in dependency array, but fix the implementation to prevent loops
 
+  // Update the fetchData function to use UsageManagementService
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const usageGoal = await safeGetItem(STORAGE_KEYS.USAGE_GOAL);
-        const reminderInterval = await safeGetItem(
-          STORAGE_KEYS.REMINDER_INTERVAL,
-        );
-
-        // Check if the data exists and has the right format
-        if (usageGoal && usageGoal.match(/\d+/)) {
-          const usage = parseInt(usageGoal.match(/\d+/)[0]);
-          setUsage(usage);
-        } else {
-          // Default fallback
-          setUsage(0);
-        }
-
+        // Get the screen time limit from the management service
+        const { hours, minutes, totalMinutes } = await UsageManagementService.getScreenTimeLimit();
+        
+        // Get the reminder interval
+        const reminderInterval = await safeGetItem(STORAGE_KEYS.REMINDER_INTERVAL);
+        
+        // Set the reminder time in the service if available
         if (reminderInterval && reminderInterval.match(/\d+/)) {
           const reminder = parseInt(reminderInterval.match(/\d+/)[0]);
+          UsageManagementService.setReminderTime(reminder);
           setReminder(reminder);
         } else {
           // Default fallback
-          setReminder(0);
+          setReminder(15); // Default 15 minutes
+        }
+        
+        // Set the time values for UI display
+        if (totalMinutes > 0) {
+          setSelectedHour(hours);
+          setSelectedMinute(minutes);
+          setHours(hours);
+          setMinutes(minutes);
+          setUsage(totalMinutes);
+        } else {
+          // Default fallback
+          setUsage(0);
         }
       } catch (error) {
         console.error('Error fetching usage data:', error);
         // Set default values if there's an error
         setUsage(0);
-        setReminder(0);
+        setReminder(15);
       }
     };
     fetchData();

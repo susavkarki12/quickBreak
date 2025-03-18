@@ -162,6 +162,34 @@ export const Setting = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Reminder Settings Section - Add this new section */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate(NAVIGATION.SCREENS.REMINDER_SETTINGS)}
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginTop: hp('2%'),
+            paddingHorizontal: wp('5.5%'),
+            alignItems: "center",
+            paddingVertical: hp('1%'),
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons
+              name="notifications"
+              size={20}
+              color={isDarkMode ? "white" : "black"}
+              style={[styles.icon, { marginLeft: wp('0.9%') }]}
+            />
+            <View style={{ flexDirection: "column", paddingVertical: 2 }}>
+              <Text style={{ ...styles.mainText, color: isDarkMode ? "white" : "black" }}>Reminder Settings</Text>
+              <Text style={{ ...styles.secondText, color: isDarkMode ? "white" : "black" }}>Configure notifications & messages</Text>
+            </View>
+          </View>
+          <FontAwesome name="chevron-right" size={15} color={isDarkMode ? "white" : "black"} />
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => { navigation.navigate(NAVIGATION.SCREENS.PERMISSION_SETTING) }}>
           <View
             style={{

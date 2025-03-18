@@ -9,6 +9,7 @@ import { Setting } from "../screens/Setting";
 import Permissions from "../constants/permissions";
 import VipComponent from "../screens/Vip";
 import ReminderPage from "../screens/ReminderPage";
+import ReminderSettings from "../screens/ReminderSettings";
 import ConfirmPage from "../screens/ConfirmPage";
 import StillusingPage from "../screens/StillUsingPage";
 import IntentionPage from "../screens/IntentionPage";
@@ -65,6 +66,7 @@ const AppNavigation = () => {
       <AppStack.Screen name="Permission" component={Permissions} />
       <AppStack.Screen name="Vip" component={VipComponent} />
       <AppStack.Screen name="ReminderPage" component={ReminderPage} />
+      <AppStack.Screen name="ReminderSettings" component={ReminderSettings} />
       <AppStack.Screen name="ConfirmPage" component={ConfirmPage} />
       <AppStack.Screen name="StillUsingPage" component={StillusingPage} />
       <AppStack.Screen name="IntentionPage" component={IntentionPage} />
