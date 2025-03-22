@@ -3,5 +3,7 @@ module.exports = {
       ios: {},
       android: {},
     },
-    assets: ['./assets/fonts'],
+    dependencies: {},
+    reactNativePath: './node_modules/react-native',
+    assets: ['./assets/fonts/'],
   };
