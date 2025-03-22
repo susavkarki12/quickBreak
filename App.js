@@ -4,6 +4,8 @@ import AppNavigation from './app/navigation/AppNavigation';
 import { NavigationContainer } from '@react-navigation/native';
 import ReactNativeForegroundService from "@supersami/rn-foreground-service";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { navigationRef } from './app/navigation/navigationRef';
+import ReminderService from './app/Service/ReminderService';
 
 const { RNAndroidInstalledApps, ForegroundAppDetector, AppBlocker } = NativeModules;
 
@@ -11,7 +13,12 @@ const App = () => {
   const [apps, setApps] = useState([]); // Full list of apps
   const [filteredApps, setFilteredApps] = useState([]); // Filtered list based on search
 
-  
+  // Set the navigation reference for ReminderService
+  useEffect(() => {
+    if (navigationRef.current) {
+      ReminderService.setNavigationRef(navigationRef);
+    }
+  }, [navigationRef.current]);
 
   useEffect(() => {
     RNAndroidInstalledApps.getNonSystemApps()
@@ -43,12 +50,10 @@ const App = () => {
   }, [apps, filteredApps]);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <AppNavigation />
     </NavigationContainer>
   );
 };
-
-
 
 export default App;

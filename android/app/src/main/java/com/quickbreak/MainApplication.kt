@@ -22,6 +22,11 @@ import com.quickbreak.UsageStatsPackage
 import com.quickbreak.UsagePermissionPackage
 import com.quickbreak.BatteryOptimizationPackage
 import com.quickbreak.RNAndroidInstalledAppsPackage
+import com.quickbreak.backgroundtasks.BackgroundTaskManagerPackage
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 
 class MainApplication : Application(), ReactApplication {
 
@@ -41,7 +46,8 @@ class MainApplication : Application(), ReactApplication {
               add(ForegroundAppDetectorPackage());
               add(AppBlockerPackage());
               add(WeeklyStatsPackage());
-              add(AccessibilityPackage())
+              add(AccessibilityPackage());
+              add(BackgroundTaskManagerPackage());
             }
 
         override fun getJSMainModuleName(): String = "index"
@@ -63,6 +69,32 @@ class MainApplication : Application(), ReactApplication {
       load()
     }
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
+    
+    // Create notification channels for Android O and above
+    createNotificationChannels()
+  }
+  
+  /**
+   * Create notification channels for the app
+   */
+  private fun createNotificationChannels() {
+    // Only needed for Android O and above
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      
+      // Channel for usage reset notifications
+      val resetChannel = NotificationChannel(
+        "usage_reset_channel",
+        "Usage Reset Notifications",
+        NotificationManager.IMPORTANCE_DEFAULT
+      ).apply {
+        description = "Notifications about daily usage limit resets"
+        enableLights(false)
+        enableVibration(false)
+      }
+      
+      notificationManager.createNotificationChannel(resetChannel)
+    }
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {

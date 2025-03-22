@@ -246,5 +246,12 @@ export const STORAGE_KEYS = {
     MINUTES: 'minutes',
     HOURS: 'hours',
     COUNTER: 'counter',
-    IS_TASK_RUNNING: 'isTaskRunning'
-}; 
+    IS_TASK_RUNNING: 'isTaskRunning',
+    IS_OVERLAY_VISIBLE: 'isOverlayVisible',
+    NAVIGATION_REF: 'navigationRef',
+    LAST_RESET_DATE: 'lastResetDate',
+    CHANGES_COUNT: 'changesCount'
+};
+
+// Add to existing exports
+export const USE_MOCK_DATA = false; // Using actual usage data 

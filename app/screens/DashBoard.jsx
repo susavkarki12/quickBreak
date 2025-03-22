@@ -11,6 +11,7 @@ import {
   Alert,
   ScrollView,
   Modal,
+  TextInput,
 } from 'react-native';
 import React, {useState, useEffect, useRef} from 'react';
 const rgba = (r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
@@ -19,11 +20,10 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import {FontAwesome, Ionicons} from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import getWeeklyUsage from '../Service/WeeklyStat';
-import ReactNativeForegroundService from '@supersami/rn-foreground-service';
 import BottomNavBar from '../components/BottomNavBar';
 import Header from '../components/Header';
+import Toast from '../components/Toast';
 import {
   COLORS,
   FONTS,
@@ -35,10 +35,12 @@ import {
   STORAGE_KEYS,
   NAVIGATION,
 } from '../constants/theme';
-import AppList from './AppList';
 import UsageMonitorService from '../Service/UsageMonitorService';
 import UsageManagementService from '../Service/UsageManagementService';
+import ReminderService from '../Service/ReminderService';
 const {AppBlocker, ForegroundAppDetector} = NativeModules;
+import { safeGetItem, safeSetItem } from '../Service/StorageHelper';
+import getUsageData from '../Service/UsageStatsService';
 
 const DashBoard = ({navigation}) => {
   const [apps, setApps] = useState([]);
@@ -47,13 +49,51 @@ const DashBoard = ({navigation}) => {
   const [usage, setUsage] = useState(null);
   const [reminder, setReminder] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [selectedTime, setSelectedTime] = useState('');
-  const [time, setTime] = useState(new Date());
   const [selectedHour, setSelectedHour] = useState(null);
   const [selectedMinute, setSelectedMinute] = useState(null);
   const [hours, setHours] = useState('');
   const [minutes, setMinutes] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [hourInput, setHourInput] = useState('');
+  const [minuteInput, setMinutInput] = useState('');
+  
+  // Toast state
+  const [toast, setToast] = useState({
+    visible: false,
+    message: '',
+    type: 'success'
+  });
+  
+  // Function to show toast with different types
+  const showToast = (message, type = 'success') => {
+    setToast({
+      visible: true,
+      message,
+      type
+    });
+  };
+  
+  // Function to hide toast
+  const hideToast = () => {
+    setToast(prev => ({...prev, visible: false}));
+  };
+
+  // Recommended time presets for screen time limit set modal (in minutes)
+  const recommendedTimes = [
+    { label: '1h', hours: 1, minutes: 0 },
+    { label: '1h 30m', hours: 1, minutes: 30 },
+    { label: '2h', hours: 2, minutes: 0 },
+    { label: '2h 30m', hours: 2, minutes: 30 },
+    { label: '3h', hours: 3, minutes: 0 },
+  ];
+
+  // Set time from preset
+  const selectPresetTime = (hours, minutes) => {
+    setHourInput(hours.toString());
+    setMinutInput(minutes.toString());
+    setSelectedHour(hours);
+    setSelectedMinute(minutes);
+  };
 
   const toggleTheme = async () => {
     const newMode = !isDarkMode;
@@ -63,16 +103,6 @@ const DashBoard = ({navigation}) => {
     } catch (error) {
       console.log('Error saving theme preference:', error);
     }
-  };
-
-  // Handle hour selection
-  const handleSelectHour = hour => {
-    setSelectedHour(hour);
-  };
-
-  // Handle minute selection
-  const handleSelectMinute = minute => {
-    setSelectedMinute(minute);
   };
 
   const getThemeColors = () => {
@@ -92,35 +122,6 @@ const DashBoard = ({navigation}) => {
   };
 
   const theme = getThemeColors();
-
-  // Helper function to safely use AsyncStorage with string keys
-  const safeGetItem = async key => {
-    if (typeof key !== 'string') {
-      console.warn(`Invalid AsyncStorage key: ${key}`);
-      return null;
-    }
-    try {
-      return await AsyncStorage.getItem(key);
-    } catch (error) {
-      console.error(`Error getting AsyncStorage item for key: ${key}`, error);
-      return null;
-    }
-  };
-
-  const safeSetItem = async (key, value) => {
-    if (typeof key !== 'string') {
-      console.error(`Invalid AsyncStorage key: ${key}`);
-      return false;
-    }
-    try {
-      await AsyncStorage.setItem(key, value);
-      return true;
-    } catch (error) {
-      console.error(`Error setting AsyncStorage item for key: ${key}`, error);
-      return false;
-    }
-  };
-
   // Load theme preference
   useEffect(() => {
     const loadThemePreference = async () => {
@@ -137,42 +138,137 @@ const DashBoard = ({navigation}) => {
     loadThemePreference();
   }, []);
 
-  // Format time display
-  const formatTime = () => {
-    return `${selectedHour}:${selectedMinute.toString().padStart(2, '0')}`;
+  // 🔹 Load data from AsyncStorage
+  const loadData = async () => {
+    try {
+      const savedMinutes = await safeGetItem(STORAGE_KEYS.MINUTES);
+      const savedHours = await safeGetItem(STORAGE_KEYS.HOURS);
+
+      if (savedMinutes !== null) {
+        setSelectedMinute(JSON.parse(savedMinutes));
+        setMinutes(JSON.parse(savedMinutes));
+      }
+      if (savedHours !== null) {
+        setSelectedHour(JSON.parse(savedHours));
+        setHours(JSON.parse(savedHours));
+      }
+    } catch (error) {
+      console.error('Error loading data', error);
+    }
   };
 
-  // Handle Confirm Button
-  const handleConfirm = async () => {
-    const formattedTime = formatTime();
-    console.log('Selected Time:', formattedTime);
-    
-    // Use UsageManagementService to set the screen time limit
-    await UsageManagementService.setScreenTimeLimit(selectedHour, selectedMinute);
-    
-    setIsVisible(false);
+  // 🔹 Load apps data from AsyncStorage
+  const getStoredData = async () => {
+    try {
+      const storedApps = await safeGetItem(STORAGE_KEYS.APPS_LIST);
+      const storedSelectedApps = await safeGetItem(
+        STORAGE_KEYS.SELECTED_APPS,
+      );
+
+      if (storedApps) {
+        const parsedApps = JSON.parse(storedApps)
+          .filter(app => app && app.packageName) // Filter out null/invalid entries
+          .map((app, index) => ({
+            id: index + 1,
+            appName: app.appName || 'Unknown App',
+            packageName: app.packageName,
+            icon: app.icon || null,
+          }));
+        setApps(parsedApps);
+      }
+
+      if (storedSelectedApps) {
+        const parsedSelectedApps = JSON.parse(storedSelectedApps)
+          .filter(pkg => pkg) // Filter out null entries
+          .map((pkg, index) => {
+            // Handle both string and object formats
+            if (typeof pkg === 'string') {
+              // For string (just package name), get app details from apps list
+              const foundApp = apps.find(
+                app => app && app.packageName === pkg,
+              );
+              return {
+                id: index + 1,
+                packageName: pkg,
+                appName: foundApp ? foundApp.appName : getAppName(pkg),
+                icon: foundApp ? foundApp.icon : null,
+              };
+            }
+
+            // For object format, ensure it has proper data
+            return {
+              id: index + 1,
+              packageName: pkg.packageName,
+              appName: pkg.appName || getAppName(pkg.packageName),
+              icon: pkg.icon || getIcon(pkg.packageName),
+            };
+          })
+          .filter(app => app.packageName); // Final filter to ensure packageName exists
+
+        // Log once during initial load, not on every re-render
+        // console.log('Parsed selected apps:', parsedSelectedApps);
+        setSelectedApps(parsedSelectedApps);
+      } else {
+        setSelectedApps([]); // Set empty array if no stored apps
+      }
+    } catch (error) {
+      console.error('Error retrieving stored apps:', error);
+      setApps([]);
+      setSelectedApps([]);
+    }
+  };
+
+  // Fetch weekly usage data
+  const fetchWeeklyData = async () => {
+    try {
+      const data = await getWeeklyUsage();
+      setWeeklyData(data);
+    } catch (error) {
+      console.error('Error fetching weekly data:', error);
+      setWeeklyData([]);
+    }
+  };
+
+  // Fetch usage time limit data
+  const fetchData = async () => {
+    try {
+      // Get the screen time limit from the management service
+      const { hours, minutes, totalMinutes } = await UsageManagementService.getScreenTimeLimit();
+      
+      // Get the reminder interval
+      const reminderInterval = await safeGetItem(STORAGE_KEYS.REMINDER_INTERVAL);
+      
+      // Set the reminder time in the service if available
+      if (reminderInterval && reminderInterval.match(/\d+/)) {
+        const reminder = parseInt(reminderInterval.match(/\d+/)[0]);
+        UsageManagementService.setReminderTime(reminder);
+        setReminder(reminder);
+      } else {
+        // Default fallback
+        setReminder(15); // Default 15 minutes
+      }
+      
+      // Set the time values for UI display
+      if (totalMinutes > 0) {
+        setSelectedHour(hours);
+        setSelectedMinute(minutes);
+        setHours(hours);
+        setMinutes(minutes);
+        setUsage(totalMinutes);
+      } else {
+        // Default fallback
+        setUsage(0);
+      }
+    } catch (error) {
+      console.error('Error fetching usage data:', error);
+      // Set default values if there's an error
+      setUsage(0);
+      setReminder(15);
+    }
   };
 
   // 🔹 Load data from AsyncStorage when the app starts
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const savedMinutes = await safeGetItem(STORAGE_KEYS.MINUTES);
-        const savedHours = await safeGetItem(STORAGE_KEYS.HOURS);
-
-        if (savedMinutes !== null) {
-          setSelectedMinute(JSON.parse(savedMinutes));
-          setMinutes(JSON.parse(savedMinutes));
-        }
-        if (savedHours !== null) {
-          setSelectedHour(JSON.parse(savedHours));
-          setHours(JSON.parse(savedHours));
-        }
-      } catch (error) {
-        console.error('Error loading data', error);
-      }
-    };
-
     loadData();
   }, []); // Runs only once when the component mounts
 
@@ -197,77 +293,10 @@ const DashBoard = ({navigation}) => {
     };
     saveData();
   }, [selectedHour, selectedMinute]); // Runs whenever values change
-  useEffect(() => {
-    const getStoredData = async () => {
-      try {
-        const storedApps = await safeGetItem(STORAGE_KEYS.APPS_LIST);
-        const storedSelectedApps = await safeGetItem(
-          STORAGE_KEYS.SELECTED_APPS,
-        );
-
-        if (storedApps) {
-          const parsedApps = JSON.parse(storedApps)
-            .filter(app => app && app.packageName) // Filter out null/invalid entries
-            .map((app, index) => ({
-              id: index + 1,
-              appName: app.appName || 'Unknown App',
-              packageName: app.packageName,
-              icon: app.icon || null,
-            }));
-          setApps(parsedApps);
-        }
-
-        if (storedSelectedApps) {
-          const parsedSelectedApps = JSON.parse(storedSelectedApps)
-            .filter(pkg => pkg) // Filter out null entries
-            .map((pkg, index) => {
-              // Handle both string and object formats
-              if (typeof pkg === 'string') {
-                // For string (just package name), get app details from apps list
-                const foundApp = apps.find(
-                  app => app && app.packageName === pkg,
-                );
-                return {
-                  id: index + 1,
-                  packageName: pkg,
-                  appName: foundApp ? foundApp.appName : getAppName(pkg),
-                  icon: foundApp ? foundApp.icon : null,
-                };
-              }
-
-              // For object format, ensure it has proper data
-              return {
-                id: index + 1,
-                packageName: pkg.packageName,
-                appName: pkg.appName || getAppName(pkg.packageName),
-                icon: pkg.icon || getIcon(pkg.packageName),
-              };
-            })
-            .filter(app => app.packageName); // Final filter to ensure packageName exists
-
-          // Log once during initial load, not on every re-render
-          // console.log('Parsed selected apps:', parsedSelectedApps);
-          setSelectedApps(parsedSelectedApps);
-        } else {
-          setSelectedApps([]); // Set empty array if no stored apps
-        }
-      } catch (error) {
-        console.error('Error retrieving stored apps:', error);
-        setApps([]);
-        setSelectedApps([]);
-      }
-    };
-
-    getStoredData();
-  }, []); // Remove apps from dependency array to prevent the infinite loop
 
   useEffect(() => {
-    const fetchWeeklyData = async () => {
-      const data = await getWeeklyUsage();
-      setWeeklyData(data);
-    };
-
     fetchWeeklyData();
+    fetchData();
   }, []);
 
   // Helper function to extract package names
@@ -299,23 +328,28 @@ const DashBoard = ({navigation}) => {
 
   // Replace the entire useEffect for service monitoring with a simpler one that uses the service
   useEffect(() => {
+    // Load all necessary data
+    loadData();
+    getStoredData();
+    fetchWeeklyData();
+    fetchData();
+    
+    // Register the reminder callback
+    UsageMonitorService.reminderCallback = sendReminderWithNavigation;
+    
+    // Check and request permissions
+    checkAndRequestPermissions();
+    
     // Start the usage monitoring service when component mounts
     UsageMonitorService.startMonitoring();
     
-    // Pass navigation to UsageMonitorService for UI overlays in reminders
-    const sendReminderWithNavigation = (remainingMinutes) => {
-      UsageMonitorService.sendReminder(navigation);
-    };
-    
-    // Pass our sendReminder function with navigation to the service
-    UsageMonitorService.reminderCallback = sendReminderWithNavigation;
-
-    // Clean up on unmount
+    // Return cleanup function
     return () => {
-      UsageMonitorService.stopMonitoring();
+      // Reset the callback
       UsageMonitorService.reminderCallback = null;
+      UsageMonitorService.stopMonitoring();
     };
-  }, [navigation]);
+  }, []);
 
   // Replace the updateBlockedApps useEffect to use the service
   useEffect(() => {
@@ -376,47 +410,6 @@ const DashBoard = ({navigation}) => {
     }
   }, [apps]); // Keep apps in dependency array, but fix the implementation to prevent loops
 
-  // Update the fetchData function to use UsageManagementService
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Get the screen time limit from the management service
-        const { hours, minutes, totalMinutes } = await UsageManagementService.getScreenTimeLimit();
-        
-        // Get the reminder interval
-        const reminderInterval = await safeGetItem(STORAGE_KEYS.REMINDER_INTERVAL);
-        
-        // Set the reminder time in the service if available
-        if (reminderInterval && reminderInterval.match(/\d+/)) {
-          const reminder = parseInt(reminderInterval.match(/\d+/)[0]);
-          UsageManagementService.setReminderTime(reminder);
-          setReminder(reminder);
-        } else {
-          // Default fallback
-          setReminder(15); // Default 15 minutes
-        }
-        
-        // Set the time values for UI display
-        if (totalMinutes > 0) {
-          setSelectedHour(hours);
-          setSelectedMinute(minutes);
-          setHours(hours);
-          setMinutes(minutes);
-          setUsage(totalMinutes);
-        } else {
-          // Default fallback
-          setUsage(0);
-        }
-      } catch (error) {
-        console.error('Error fetching usage data:', error);
-        // Set default values if there's an error
-        setUsage(0);
-        setReminder(15);
-      }
-    };
-    fetchData();
-  }, []);
-
   const getIcon = packageName => {
     if (!apps || !Array.isArray(apps)) return null;
     const foundApp = apps.find(
@@ -434,6 +427,201 @@ const DashBoard = ({navigation}) => {
       : packageName.split('.').pop() || packageName;
   };
 
+  // Add new state for permission status
+  const [permissionStatus, setPermissionStatus] = useState({
+    notifications: false,
+    overlay: false,
+    usageAccess: false
+  });
+  
+  // Track if permissions have been requested already to avoid asking too frequently
+  const permissionsRequested = useRef(false);
+  
+  // Function to send reminders with navigation object
+  const sendReminderWithNavigation = (remainingMinutes) => {
+    if (navigation) {
+      ReminderService.sendReminder(remainingMinutes, navigation);
+    }
+  };
+  
+  // Check and request permissions when needed
+  const checkAndRequestPermissions = async () => {
+    try {
+      // Check current permission status
+      let status = { notifications: false, overlay: false, usageAccess: false };
+      
+      try {
+        // Try to check permissions, but don't crash if it fails
+        const reminderStatus = await ReminderService.checkAllPermissions();
+        status.notifications = reminderStatus.notifications;
+        status.overlay = reminderStatus.overlay;
+        
+        // Also check usage access permission
+        const usageAccess = await UsageMonitorService.checkUsageAccessPermission();
+        status.usageAccess = usageAccess;
+      } catch (permError) {
+        console.error('[Dashboard] Error checking permissions:', permError);
+        // Continue with default values
+      }
+      
+      setPermissionStatus(status);
+      
+      // If we've already asked during this session, don't ask again
+      if (permissionsRequested.current) {
+        return;
+      }
+      
+      // If any permission is missing, ask the user if they want to grant permissions
+      if (!status.notifications || !status.overlay || !status.usageAccess) {
+        console.log('[Dashboard] Some permissions are missing, showing prompt...');
+        
+        // Create a message based on which permissions are missing
+        let message = 'QuickBreak needs permissions to function properly:';
+        if (!status.notifications) message += '\n• Notification permissions for alerts';
+        if (!status.overlay) message += '\n• Overlay permissions to show alerts';
+        if (!status.usageAccess) message += '\n• Usage access to track app usage';
+        
+        Alert.alert(
+          'Allow Permissions',
+          message,
+          [
+            {
+              text: 'Later',
+              style: 'cancel',
+              onPress: () => {
+                console.log('[Dashboard] User chose to enable permissions later');
+                showToast('You can enable permissions later in settings', 'info');
+              }
+            },
+            {
+              text: 'Enable Now',
+              onPress: async () => {
+                try {
+                  // Mark that we've requested permissions this session
+                  permissionsRequested.current = true;
+                  
+                  // Request all necessary permissions
+                  let newStatus = { 
+                    notifications: status.notifications, 
+                    overlay: status.overlay,
+                    usageAccess: status.usageAccess
+                  };
+                  
+                  // If notifications or overlay permissions are missing
+                  if (!status.notifications || !status.overlay) {
+                    try {
+                      const reminderPerms = await ReminderService.requestAllPermissions();
+                      newStatus.notifications = reminderPerms.notifications;
+                      newStatus.overlay = reminderPerms.overlay;
+                    } catch (reqError) {
+                      console.error('[Dashboard] Error requesting reminder permissions:', reqError);
+                    }
+                  }
+                  
+                  // If usage access permission is missing
+                  if (!status.usageAccess) {
+                    try {
+                      // Show a special alert for usage access as it needs special handling
+                      setTimeout(() => {
+                        Alert.alert(
+                          'Usage Access Required',
+                          'QuickBreak needs permission to track app usage. This will open system settings where you need to enable Usage Access for QuickBreak.',
+                          [
+                            {
+                              text: 'Open Settings',
+                              onPress: () => {
+                                UsageMonitorService.openUsageAccessSettings();
+                              }
+                            }
+                          ]
+                        );
+                      }, 500);
+                    } catch (usageError) {
+                      console.error('[Dashboard] Error requesting usage access:', usageError);
+                    }
+                  }
+                  
+                  setPermissionStatus(newStatus);
+                  
+                  // Show relevant toast based on permission status
+                  const allGranted = newStatus.notifications && newStatus.overlay;
+                  const noneGranted = !newStatus.notifications && !newStatus.overlay;
+                  
+                  if (allGranted) {
+                    showToast('Permissions granted', 'success');
+                  } else if (noneGranted) {
+                    showToast('Permissions needed for app to function properly', 'error');
+                  } else {
+                    showToast('Some permissions were not granted', 'warning');
+                  }
+                } catch (toastError) {
+                  console.error('[Dashboard] Error showing permission toast:', toastError);
+                }
+              }
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('[Dashboard] Error in permission check process:', error);
+      // Don't block the app from running due to permission issues
+    }
+  };
+
+  // Handle Confirm Button for screen time limit set modal
+  const handleConfirm = async () => {
+    // Convert inputs to numbers and validate
+    const hoursNum = parseInt(hourInput) || 0;
+    const minutesNum = parseInt(minuteInput) || 0;
+
+    // Get the current changes count
+    const currentChangesCount = await UsageManagementService.getChangesCount();
+    // check if the changes count is more than 2 or not
+    if (currentChangesCount >= 2) {
+      // Show error toast
+      showToast('You have reached the maximum number of changes for the screen time limit.', 'error');
+      return;
+    }
+    
+    // Validate input ranges
+    const validHours = Math.min(Math.max(0, hoursNum), 23);
+    const validMinutes = Math.min(Math.max(0, minutesNum), 59);
+    
+    // Validate non-zero input
+    if (validHours === 0 && validMinutes === 0) {
+      // Show warning toast
+      showToast('Please set a time greater than 0', 'warning');
+      return;
+    }
+    
+    setSelectedHour(validHours);
+    setSelectedMinute(validMinutes);
+    
+    try {
+      // Use UsageManagementService to set the screen time limit
+      const success = await UsageManagementService.setScreenTimeLimit(validHours, validMinutes);
+      
+      if (!success) {
+        showToast('Failed to set screen time limit. Please try again.', 'error');
+        console.error(`Failed to set screen time limit: ${validHours}h ${validMinutes}m`);
+        return;
+      }
+      
+      // Update display values
+      setHours(validHours);
+      setMinutes(validMinutes);
+      
+      // Close modal
+      setIsVisible(false);
+  
+      // Show success toast
+      showToast('Screen time limit updated successfully!', 'success');
+    } catch (error) {
+      console.error('Error setting screen time limit:', error);
+      showToast(`Error setting screen time limit: ${error.message}`, 'error');
+    }
+  };
+
   return (
     <SafeAreaView
       style={[styles.container, {backgroundColor: theme.background}]}>
@@ -443,6 +631,17 @@ const DashBoard = ({navigation}) => {
         <ScrollView
           style={[styles.scrollView, {backgroundColor: theme.background}]}
           showsVerticalScrollIndicator={false}>
+          
+          {/* Toast notification */}
+          <Toast
+            visible={toast.visible}
+            message={toast.message}
+            type={toast.type}
+            isDarkMode={isDarkMode}
+            onClose={hideToast}
+            duration={2000}
+          />
+          
           <View
             style={[
               styles.screenTime,
@@ -459,7 +658,9 @@ const DashBoard = ({navigation}) => {
                 ]}>
                 Current Streak
               </Text>
-              <TouchableOpacity style={styles.infoIcon}>
+              <TouchableOpacity 
+                style={styles.infoIcon}
+                onPress={() => showToast('Keep your usage within limits to maintain your streak!', 'info')}>
                 <Ionicons
                   name="information-circle-outline"
                   size={wp('5%')}
@@ -468,7 +669,8 @@ const DashBoard = ({navigation}) => {
               </TouchableOpacity>
             </View>
 
-            <View
+            <TouchableOpacity
+              onPress={() => showToast('You\'ve maintained your streak for 10 days!', 'info')}
               style={[
                 styles.streakContent,
                 {
@@ -494,7 +696,7 @@ const DashBoard = ({navigation}) => {
                   You're on a roll! Keep it up!
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             <View style={[styles.divider, {backgroundColor: theme.border}]} />
 
@@ -508,7 +710,11 @@ const DashBoard = ({navigation}) => {
               </Text>
               <TouchableOpacity
                 style={styles.editButton}
-                onPress={() => setIsVisible(true)}>
+                onPress={() => {
+                  setHourInput(selectedHour ? selectedHour.toString() : '0');
+                  setMinutInput(selectedMinute ? selectedMinute.toString() : '0');
+                  setIsVisible(true);
+                }}>
                 <Ionicons name="create-outline" size={wp('4%')} color="#FFF" />
                 <Text style={styles.editButtonText}>Set Limit</Text>
               </TouchableOpacity>
@@ -549,7 +755,7 @@ const DashBoard = ({navigation}) => {
                   </View>
                   <Text
                     style={[styles.statSubtitle, {color: theme.secondaryText}]}>
-                    vs limit: 2h 30m
+                    vs limit: {hours || 0}h {minutes || 0}m
                   </Text>
                 </View>
 
@@ -567,20 +773,42 @@ const DashBoard = ({navigation}) => {
                     Daily Limit
                   </Text>
                   <View style={styles.timeValueContainer}>
-                    <Text
-                      style={[
-                        styles.timeValue,
-                        {
-                          color: isDarkMode ? COLORS.primary : COLORS.primary,
-                        },
-                      ]}>
-                      {reminder}
-                    </Text>
+                    {hours > 0 || minutes > 0 ? (
+                      <Text
+                        style={[
+                          styles.timeValue,
+                          {
+                            color: isDarkMode ? COLORS.primary : COLORS.primary,
+                          },
+                        ]}>
+                        {hours > 0 ? `${hours}h ` : ''}{minutes > 0 ? `${minutes}m` : hours > 0 ? '' : '0m'}
+                      </Text>
+                    ) : (
+                      <Text
+                        style={[
+                          styles.timeValue,
+                          {
+                            color: isDarkMode ? COLORS.text.darkMode.secondary : COLORS.text.secondary,
+                            fontSize: FONT_SIZES.md,
+                            fontStyle: 'italic',
+                          },
+                        ]}>
+                        Not set
+                      </Text>
+                    )}
                   </View>
-                  <Text
-                    style={[styles.statSubtitle, {color: theme.secondaryText}]}>
-                    Tap to edit limit
-                  </Text>
+                  <TouchableOpacity 
+                    style={styles.editLimitButton}
+                    onPress={() => {
+                      setHourInput(selectedHour ? selectedHour.toString() : '0');
+                      setMinutInput(selectedMinute ? selectedMinute.toString() : '0');
+                      setIsVisible(true);
+                    }}>
+                    <Text
+                      style={[styles.editLimitText, {color: theme.secondaryText}]}>
+                      <Ionicons name="pencil-outline" size={wp('3%')} color={COLORS.primary} /> Edit limit
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -605,77 +833,87 @@ const DashBoard = ({navigation}) => {
                   ]}>
                   Set Screen Time Limit
                 </Text>
-                <View style={styles.pickerContainer}>
-                  <View
-                    style={[
-                      styles.picker,
-                      {
-                        backgroundColor: isDarkMode
-                          ? COLORS.background.darkTertiary
-                          : COLORS.background.secondary,
-                      },
-                    ]}>
-                    {Array.from({length: 24}, (_, i) => i).map(hour => (
-                      <TouchableOpacity
-                        key={hour}
-                        style={[
-                          styles.pickerItem,
-                          selectedHour === hour && styles.selectedItem,
-                        ]}
-                        onPress={() => handleSelectHour(hour)}>
-                        <Text
-                          style={[
-                            styles.pickerText,
-                            {
-                              color:
-                                selectedHour === hour ? '#FFFFFF' : theme.text,
-                            },
-                          ]}>
-                          {hour.toString().padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                
+                <View style={styles.formContainer}>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, {color: theme.text}]}>Hours</Text>
+                    <View style={[styles.inputWrapper, {borderColor: theme.border, backgroundColor: isDarkMode ? COLORS.background.darkTertiary : COLORS.background.secondary}]}>
+                      <TextInput
+                        style={[styles.timeInput, {color: theme.text}]}
+                        keyboardType="numeric"
+                        maxLength={2}
+                        value={hourInput}
+                        onChangeText={(text) => {
+                          // Only allow digits
+                          const filtered = text.replace(/[^0-9]/g, '');
+                          setHourInput(filtered);
+                        }}
+                        placeholder="0"
+                        placeholderTextColor={isDarkMode ? COLORS.text.darkMode.secondary : COLORS.text.secondary}
+                      />
+                    </View>
                   </View>
-                  <Text
-                    style={[
-                      styles.separator,
-                      {color: isDarkMode ? COLORS.primary : COLORS.primary},
-                    ]}>
-                    :
-                  </Text>
-                  <View
-                    style={[
-                      styles.picker,
-                      {
-                        backgroundColor: isDarkMode
-                          ? COLORS.background.darkTertiary
-                          : COLORS.background.secondary,
-                      },
-                    ]}>
-                    {Array.from({length: 60}, (_, i) => i).map(minute => (
-                      <TouchableOpacity
-                        key={minute}
-                        style={[
-                          styles.pickerItem,
-                          selectedMinute === minute && styles.selectedItem,
-                        ]}
-                        onPress={() => handleSelectMinute(minute)}>
-                        <Text
-                          style={[
-                            styles.pickerText,
-                            {
-                              color:
-                                selectedMinute === minute
-                                  ? '#FFFFFF'
-                                  : theme.text,
-                            },
-                          ]}>
-                          {minute.toString().padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.inputLabel, {color: theme.text}]}>Minutes</Text>
+                    <View style={[styles.inputWrapper, {borderColor: theme.border, backgroundColor: isDarkMode ? COLORS.background.darkTertiary : COLORS.background.secondary}]}>
+                      <TextInput
+                        style={[styles.timeInput, {color: theme.text}]}
+                        keyboardType="numeric"
+                        maxLength={2}
+                        value={minuteInput}
+                        onChangeText={(text) => {
+                          // Only allow digits
+                          const filtered = text.replace(/[^0-9]/g, '');
+                          setMinutInput(filtered);
+                        }}
+                        placeholder="0"
+                        placeholderTextColor={isDarkMode ? COLORS.text.darkMode.secondary : COLORS.text.secondary}
+                      />
+                    </View>
                   </View>
                 </View>
+                
+                <Text style={[styles.recommendedLabel, {color: theme.secondaryText}]}>
+                  Recommended Times
+                </Text>
+                
+                <View style={styles.chipsContainer}>
+                  {recommendedTimes.map((item, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.timeChip,
+                        {
+                          backgroundColor: 
+                            selectedHour === item.hours && selectedMinute === item.minutes
+                              ? COLORS.primary
+                              : isDarkMode 
+                                ? COLORS.background.darkTertiary 
+                                : COLORS.background.secondary,
+                          borderColor: 
+                            selectedHour === item.hours && selectedMinute === item.minutes
+                              ? COLORS.primary
+                              : theme.border,
+                        }
+                      ]}
+                      onPress={() => selectPresetTime(item.hours, item.minutes)}>
+                      <Text
+                        style={[
+                          styles.chipText,
+                          {
+                            color: 
+                              selectedHour === item.hours && selectedMinute === item.minutes
+                                ? '#FFFFFF'
+                                : theme.text,
+                          }
+                        ]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     style={[
@@ -962,7 +1200,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderColor: COLORS.primary,
     borderWidth: 1,
-    ...SHADOWS.light,
+    ...SHADOWS.medium,
   },
   setTimeText: {
     color: COLORS.primary,
@@ -1013,8 +1251,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: VERTICAL_SPACING.sm,
     alignItems: 'center',
-    borderRadius: BORDER_RADIUS.sm,
+    borderRadius: BORDER_RADIUS.pill,
     marginHorizontal: SPACING.xs,
+    ...SHADOWS.tiny,
   },
   confirmButton: {
     backgroundColor: COLORS.primary,
@@ -1163,6 +1402,76 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.bold,
     color: COLORS.text.primary,
+  },
+  formContainer: {
+    width: '100%',
+    marginVertical: VERTICAL_SPACING.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  inputGroup: {
+    flex: 1,
+    marginHorizontal: SPACING.xs,
+  },
+  inputLabel: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.medium,
+    marginBottom: VERTICAL_SPACING.xs,
+    textAlign: 'center',
+  },
+  inputWrapper: {
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm,
+    alignItems: 'center',
+    ...SHADOWS.light,
+  },
+  timeInput: {
+    fontSize: FONT_SIZES.xl,
+    fontFamily: FONTS.bold,
+    textAlign: 'center',
+    width: '100%',
+    minWidth: wp('20%'),
+  },
+  recommendedLabel: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.bold,
+    marginTop: VERTICAL_SPACING.md,
+    marginBottom: VERTICAL_SPACING.sm,
+    textAlign: 'center',
+    color: COLORS.primary,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: VERTICAL_SPACING.md,
+    gap: SPACING.sm,
+  },
+  timeChip: {
+    paddingVertical: VERTICAL_SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.pill,
+    borderWidth: 1,
+    marginHorizontal: SPACING.xs,
+    ...SHADOWS.light,
+  },
+  chipText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.medium,
+  },
+  editLimitButton: {
+    padding: SPACING.xs,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  editLimitText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.medium,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
   },
 });
 

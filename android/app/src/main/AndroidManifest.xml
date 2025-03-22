@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
       android:name=".MainApplication"
@@ -79,6 +81,21 @@
       <service android:name=".AppMonitorService" android:enabled="true" android:exported="false"/>
       <service android:name=".OverlayService" android:enabled="true" android:exported="false"/>
 
+      <!-- Receiver for midnight reset -->
+      <receiver
+          android:name=".backgroundtasks.MidnightResetReceiver"
+          android:enabled="true"
+          android:exported="false">
+          <intent-filter>
+              <action android:name="com.quickbreak.MIDNIGHT_RESET" />
+              <action android:name="android.intent.action.BOOT_COMPLETED" />
+          </intent-filter>
+      </receiver>
+
+      <!-- Notification channels -->
+      <meta-data
+          android:name="com.quickbreak.notification_channel_usage_reset"
+          android:value="Usage Reset Notifications" />
 
     </application>
 </manifest>

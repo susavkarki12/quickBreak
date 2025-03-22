@@ -157,6 +157,35 @@ class UsageManagementService {
       return false;
     }
   }
+  
+  /**
+   * Set the changes count of changes in the screen time limit
+   * @param {number} count - Number of changes
+   * @returns {Promise<boolean>} Success status
+   */
+  async setChangesCount(count) {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.CHANGES_COUNT, JSON.stringify(count));
+      return true;
+    } catch (error) {
+      console.error('Error setting changes count:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Get the changes count of changes in the screen time limit
+   * @returns {Promise<number>} Number of changes
+   */
+  async getChangesCount() {
+    try {
+      const count = await AsyncStorage.getItem(STORAGE_KEYS.CHANGES_COUNT);
+      return count ? parseInt(count) : 0;
+    } catch (error) {
+      console.error('Error getting changes count:', error);
+      return 0;
+    }
+  }
 }
 
 // Export as a singleton

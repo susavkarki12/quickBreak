@@ -92,6 +92,17 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    
+    // Add compatibility for Java 8 features
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    
     signingConfigs {
         release {                                                      //add this line
             if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {       //add this line
